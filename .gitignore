@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+crm.db
+.claude/settings.local.json
+.pytest_cache/
+node_modules/
+dist/
