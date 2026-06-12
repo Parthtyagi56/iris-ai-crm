@@ -138,6 +138,7 @@ def draft_messages(objective: str, audience_description: str, channel: str) -> d
         "sms": "Max 160 characters. No emojis overload, one clear CTA.",
         "whatsapp": "Max ~500 characters, conversational, 1-2 emojis fine, one CTA.",
         "email": "Subject-line style first sentence, then 2-3 short sentences, one CTA.",
+        "rcs": "Rich-card style: punchy first line as the card title, then 1-2 short sentences, one CTA button text in [brackets].",
     }
     system = (
         "You write high-converting retention marketing copy for an Indian "

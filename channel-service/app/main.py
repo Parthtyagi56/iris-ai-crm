@@ -46,6 +46,7 @@ CHANNEL_PROFILES = {
     "whatsapp": {"opened": 0.65, "read": 0.85, "clicked": 0.30, "converted": 0.25},
     "email":    {"opened": 0.32, "read": 0.60, "clicked": 0.18, "converted": 0.20},
     "sms":      {"opened": 0.45, "read": 0.70, "clicked": 0.10, "converted": 0.15},
+    "rcs":      {"opened": 0.55, "read": 0.80, "clicked": 0.25, "converted": 0.20},
 }
 FAILURE_REASONS = ["invalid_number", "blocked_by_recipient",
                    "carrier_rejected", "rate_limited"]

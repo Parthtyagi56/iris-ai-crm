@@ -116,13 +116,23 @@ API docs at http://localhost:8000/docs. Tests: `cd backend && pytest`.
 `./e2e_test.sh` (repo root) runs the whole loop unattended and prints the
 resulting funnel.
 
-## Deployment shape
+## Deployment
 
-* **CRM API + channel service** → two Render (or Railway) web services.
-* **Postgres** → Neon free tier; set `DATABASE_URL`.
-* **Frontend** → Vercel, pointing at the CRM URL.
-* Set `CRM_PUBLIC_URL` to the CRM's public URL (the channel calls back into
-  it) and the same `WEBHOOK_SECRET` on both services.
+A [render.yaml](render.yaml) blueprint deploys both services in one click:
+
+1. **Neon** — create a free Postgres DB, copy the connection string.
+2. **Render** — *New → Blueprint*, point at this repo. Fill in:
+   `DATABASE_URL` (Neon), `ANTHROPIC_API_KEY` (optional),
+   `CHANNEL_SERVICE_URL` = `https://aurelia-channel.onrender.com`,
+   `CRM_PUBLIC_URL` = `https://aurelia-crm.onrender.com`.
+   `WEBHOOK_SECRET` is auto-generated and shared via an env group; the CRM
+   seeds itself on first boot.
+3. **Vercel** — import the repo, set *Root Directory* to `frontend/`, add
+   env var `VITE_API_URL` = the CRM URL. `frontend/vercel.json` already
+   handles SPA rewrites.
+
+Architecture decisions and their trade-offs are documented in
+[DECISIONS.md](DECISIONS.md).
 
 ## Scale assumptions & conscious trade-offs
 

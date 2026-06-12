@@ -1,13 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, fmtDate } from "../api.js";
+import { usePageTitle } from "../App.jsx";
+import { useToast } from "../components/Toast.jsx";
+import { SkeletonRows } from "../components/Skeleton.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import RuleEditor, { defaultGroup, humanizeRules } from "../components/RuleEditor.jsx";
 
 export default function Segments({ aiEnabled }) {
-  const [segments, setSegments] = useState([]);
+  usePageTitle("Audiences");
+  const toast = useToast();
+  const [segments, setSegments] = useState(null);
   const [prompt, setPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
-  // draft = { name, description, rules, created_by } while building a segment
+  // draft = { name, description, rules, created_by } while building an audience
   const [draft, setDraft] = useState(null);
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState("");
@@ -54,17 +60,22 @@ export default function Segments({ aiEnabled }) {
     }
   };
 
+  const startManual = () => {
+    setDraft({ name: "", description: "", rules: defaultGroup(), created_by: "user" });
+    setPreview(null);
+  };
+
   const save = async () => {
     setSaving(true);
-    setError("");
     try {
-      await api.post("/api/segments", draft);
+      const res = await api.post("/api/segments", draft);
+      toast(`Audience "${draft.name}" saved — ${res.audience_count} customers`, "success");
       setDraft(null);
       setPreview(null);
       setPrompt("");
       await loadSegments();
     } catch (e) {
-      setError(e.message);
+      toast(e.message, "error");
     } finally {
       setSaving(false);
     }
@@ -75,7 +86,7 @@ export default function Segments({ aiEnabled }) {
       <div className="page-head">
         <div>
           <h1>Audiences</h1>
-          <p>Describe who you want to reach — review the rules and live preview before saving.</p>
+          <p>Describe who you want to reach in plain English. The AI proposes editable rules — you see exactly who matches before anything is saved.</p>
         </div>
       </div>
 
@@ -84,6 +95,7 @@ export default function Segments({ aiEnabled }) {
         {aiEnabled ? (
           <div className="row">
             <input
+              aria-label="Describe your audience"
               placeholder='e.g. "high spenders in Mumbai who haven’t ordered in 60 days"'
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
@@ -92,53 +104,41 @@ export default function Segments({ aiEnabled }) {
             <button className="primary shrink" disabled={!prompt.trim() || generating} onClick={generate}>
               {generating ? "Thinking…" : "✦ Generate with AI"}
             </button>
-            <button
-              className="shrink"
-              onClick={() => { setDraft({ name: "", description: "", rules: defaultGroup(), created_by: "user" }); setPreview(null); }}
-            >
-              Build manually
-            </button>
+            <button className="shrink ghost" onClick={startManual}>Build manually</button>
           </div>
         ) : (
           <div className="row">
-            <span className="muted">AI is off (no ANTHROPIC_API_KEY) — build rules manually instead.</span>
-            <button
-              className="primary shrink"
-              onClick={() => { setDraft({ name: "", description: "", rules: defaultGroup(), created_by: "user" }); setPreview(null); }}
-            >
-              Build manually
-            </button>
+            <span className="hint">AI is off (no ANTHROPIC_API_KEY) — build rules manually instead.</span>
+            <button className="primary shrink" onClick={startManual}>Build manually</button>
           </div>
         )}
 
-        {error && <div className="error">{error}</div>}
+        {error && <div className="error-banner">{error}</div>}
 
         {draft && (
           <div style={{ marginTop: 16 }}>
-            {draft.description && <p className="muted" style={{ marginTop: 0 }}>✦ {draft.description}</p>}
-            <div className="row" style={{ marginBottom: 12 }}>
-              <label className="field" style={{ marginBottom: 0 }}>
-                <span>Audience name</span>
-                <input
-                  value={draft.name}
-                  placeholder="e.g. Lapsed high spenders"
-                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-                />
-              </label>
-            </div>
+            {draft.description && <p className="hint" style={{ marginTop: 0 }}>✦ {draft.description}</p>}
+            <label className="field" style={{ maxWidth: 420 }}>
+              <span>Audience name</span>
+              <input
+                value={draft.name}
+                placeholder="e.g. Lapsed high spenders"
+                onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              />
+            </label>
 
             <RuleEditor group={draft.rules} onChange={(rules) => setDraft({ ...draft, rules })} />
 
-            <div className="row" style={{ marginTop: 14, alignItems: "center" }}>
-              <div>
+            <div className="row" style={{ marginTop: 16, alignItems: "center" }}>
+              <div aria-live="polite">
                 {preview ? (
                   <div>
                     <span className="preview-count">
                       {preview.count.toLocaleString("en-IN")}
-                      <small>customers match</small>
+                      <small>customers match right now</small>
                     </span>
                     {preview.sample.length > 0 && (
-                      <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                      <div className="hint" style={{ marginTop: 4 }}>
                         e.g. {preview.sample.map((s) => `${s.name} (${s.city || "—"})`).join(" · ")}
                       </div>
                     )}
@@ -159,31 +159,39 @@ export default function Segments({ aiEnabled }) {
       </div>
 
       <div className="panel">
-        <h2>Saved audiences ({segments.length})</h2>
-        {segments.length === 0 ? (
-          <p className="muted">Nothing saved yet.</p>
+        <h2>Saved audiences {segments && `(${segments.length})`}</h2>
+        {segments === null ? (
+          <table><SkeletonRows cols={5} rows={3} /></table>
+        ) : segments.length === 0 ? (
+          <EmptyState
+            icon="◎"
+            title="No audiences yet"
+            hint="Audiences are reusable, rule-based segments. Campaigns snapshot the rules at launch, so editing an audience later never rewrites history."
+          />
         ) : (
-          <table>
-            <thead>
-              <tr><th>Name</th><th>Rules</th><th>By</th><th>Created</th><th></th></tr>
-            </thead>
-            <tbody>
-              {segments.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <strong>{s.name}</strong>
-                    {s.description && <div className="muted" style={{ fontSize: 12 }}>{s.description}</div>}
-                  </td>
-                  <td><code style={{ fontSize: 12 }}>{humanizeRules(s.rules)}</code></td>
-                  <td>{s.created_by === "ai" ? <span className="badge ai">✦ AI</span> : <span className="badge">user</span>}</td>
-                  <td>{fmtDate(s.created_at)}</td>
-                  <td>
-                    <Link to={`/campaigns/new?segment=${s.id}`}><button>Use →</button></Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Rules</th><th>By</th><th>Created</th><th></th></tr>
+              </thead>
+              <tbody>
+                {segments.map((s) => (
+                  <tr key={s.id}>
+                    <td>
+                      <strong>{s.name}</strong>
+                      {s.description && <div className="hint">{s.description}</div>}
+                    </td>
+                    <td><code className="rules">{humanizeRules(s.rules)}</code></td>
+                    <td>{s.created_by === "ai" ? <span className="badge ai">✦ AI</span> : <span className="badge">user</span>}</td>
+                    <td className="muted">{fmtDate(s.created_at)}</td>
+                    <td>
+                      <Link to={`/campaigns/new?segment=${s.id}`}><button>Use →</button></Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </>

@@ -29,7 +29,7 @@ SegmentField = Literal[
     "city",
 ]
 Comparator = Literal[">", ">=", "<", "<=", "==", "!=", "in"]
-Channel = Literal["whatsapp", "sms", "email"]
+Channel = Literal["whatsapp", "sms", "email", "rcs"]
 
 
 class Condition(BaseModel):

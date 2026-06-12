@@ -1,0 +1,50 @@
+# Render Blueprint: deploys both services in one click (New → Blueprint).
+#
+# After the first deploy, the only manual steps are filling the env vars
+# marked `sync: false`:
+#   aurelia-crm:
+#     DATABASE_URL        -> Neon Postgres URL (or leave unset for ephemeral SQLite)
+#     ANTHROPIC_API_KEY   -> enables the AI features (optional)
+#     CHANNEL_SERVICE_URL -> https://aurelia-channel.onrender.com
+#     CRM_PUBLIC_URL      -> https://aurelia-crm.onrender.com
+# WEBHOOK_SECRET is generated once and shared by both services via the env group.
+# The CRM's start command seeds on first boot (seed.py is a no-op if data exists).
+
+envVarGroups:
+  - name: aurelia-shared
+    envVars:
+      - key: WEBHOOK_SECRET
+        generateValue: true
+
+services:
+  - type: web
+    name: aurelia-crm
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - fromGroup: aurelia-shared
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        sync: false
+      - key: CHANNEL_SERVICE_URL
+        sync: false
+      - key: CRM_PUBLIC_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+  - type: web
+    name: aurelia-channel
+    runtime: python
+    rootDir: channel-service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - fromGroup: aurelia-shared
+      - key: PYTHON_VERSION
+        value: 3.12.10

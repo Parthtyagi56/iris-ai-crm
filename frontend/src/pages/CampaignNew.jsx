@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../api.js";
+import { usePageTitle } from "../App.jsx";
+import { useToast } from "../components/Toast.jsx";
+import Modal from "../components/Modal.jsx";
 import { humanizeRules } from "../components/RuleEditor.jsx";
 
 const TOKENS = ["{{first_name}}", "{{name}}", "{{city}}"];
-const CHANNELS = ["whatsapp", "sms", "email"];
+const CHANNELS = ["whatsapp", "sms", "email", "rcs"];
 
 export default function CampaignNew({ aiEnabled }) {
+  usePageTitle("New campaign");
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [segments, setSegments] = useState(null);
   const [name, setName] = useState("");
@@ -23,6 +28,7 @@ export default function CampaignNew({ aiEnabled }) {
 
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const templateRef = useRef(null);
 
   useEffect(() => {
@@ -59,7 +65,7 @@ export default function CampaignNew({ aiEnabled }) {
       });
       setVariants(res.variants || []);
     } catch (e) {
-      setError(e.message);
+      toast(e.message, "error");
     } finally {
       setDrafting(false);
     }
@@ -75,7 +81,6 @@ export default function CampaignNew({ aiEnabled }) {
 
   const create = async (launch) => {
     setSubmitting(true);
-    setError("");
     try {
       const res = await api.post("/api/campaigns", {
         name,
@@ -83,26 +88,36 @@ export default function CampaignNew({ aiEnabled }) {
         channel,
         message_template: template,
       });
-      if (launch) await api.post(`/api/campaigns/${res.id}/launch`, {});
+      if (launch) {
+        await api.post(`/api/campaigns/${res.id}/launch`, {});
+        toast(`Campaign launched to ${res.audience_size} customers`, "success");
+      } else {
+        toast("Campaign saved as draft", "success");
+      }
       navigate(`/campaigns/${res.id}`);
     } catch (e) {
-      setError(e.message);
+      toast(e.message, "error");
       setSubmitting(false);
+      setConfirming(false);
     }
   };
 
   const ready = name.trim() && segmentId && template.trim();
+  const previewText = template
+    .replaceAll("{{first_name}}", "Asha")
+    .replaceAll("{{name}}", "Asha Mehta")
+    .replaceAll("{{city}}", "Mumbai");
 
   return (
     <>
       <div className="page-head">
         <div>
           <h1>New campaign</h1>
-          <p>Pick an audience, write (or AI-draft) the message, launch when it looks right.</p>
+          <p>Pick an audience, write or AI-draft the message, review the summary, then launch.</p>
         </div>
       </div>
 
-      {error && <div className="error">{error}</div>}
+      {error && <div className="error-banner">{error}</div>}
 
       <div className="panel" style={{ marginTop: 0 }}>
         <div className="row">
@@ -128,16 +143,16 @@ export default function CampaignNew({ aiEnabled }) {
         </div>
 
         {segments !== null && segments.length === 0 && (
-          <p className="muted">
+          <p className="hint">
             No audiences yet — <Link to="/segments">create one first</Link>.
           </p>
         )}
 
         {segment && (
-          <p className="muted" style={{ marginTop: 0 }}>
-            <code style={{ fontSize: 12 }}>{humanizeRules(segment.rules)}</code>
+          <p className="hint" style={{ marginTop: 0 }}>
+            <code className="rules">{humanizeRules(segment.rules)}</code>
             {" · "}
-            {audience === null ? "counting…" : <strong>{audience.toLocaleString("en-IN")} customers</strong>}
+            {audience === null ? "counting…" : <strong>{audience.toLocaleString("en-IN")} customers will receive this</strong>}
           </p>
         )}
       </div>
@@ -149,6 +164,7 @@ export default function CampaignNew({ aiEnabled }) {
           <>
             <div className="row" style={{ marginBottom: 12 }}>
               <input
+                aria-label="Campaign objective for AI drafting"
                 placeholder='Objective, e.g. "bring lapsed customers back with 10% off"'
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
@@ -163,7 +179,9 @@ export default function CampaignNew({ aiEnabled }) {
                   <div key={i} className="variant">
                     <span className="label">✦ {v.label}</span>
                     <p>{v.content}</p>
-                    <button onClick={() => setTemplate(v.content)}>Use this</button>
+                    <button onClick={() => { setTemplate(v.content); toast(`Using "${v.label}"`, "info"); }}>
+                      Use this
+                    </button>
                   </div>
                 ))}
               </div>
@@ -181,7 +199,7 @@ export default function CampaignNew({ aiEnabled }) {
             onChange={(e) => setTemplate(e.target.value)}
           />
         </label>
-        <div className="token-chips">
+        <div className="token-chips" aria-label="Insert personalisation token">
           {TOKENS.map((t) => (
             <button key={t} onClick={() => insertToken(t)}>{t}</button>
           ))}
@@ -189,13 +207,38 @@ export default function CampaignNew({ aiEnabled }) {
 
         <div className="row" style={{ marginTop: 18, justifyContent: "flex-end" }}>
           <div className="shrink" style={{ display: "flex", gap: 8 }}>
-            <button disabled={!ready || submitting} onClick={() => create(false)}>Save draft</button>
-            <button className="primary" disabled={!ready || submitting} onClick={() => create(true)}>
-              {submitting ? "Working…" : "Create & launch 🚀"}
+            <button disabled={!ready || submitting} onClick={() => create(false)}>Save as draft</button>
+            <button className="primary" disabled={!ready || submitting} onClick={() => setConfirming(true)}>
+              Review & launch
             </button>
           </div>
         </div>
       </div>
+
+      {confirming && (
+        <Modal
+          title="Launch this campaign?"
+          onClose={() => !submitting && setConfirming(false)}
+          footer={
+            <>
+              <button className="ghost" disabled={submitting} onClick={() => setConfirming(false)}>Cancel</button>
+              <button className="primary" disabled={submitting} onClick={() => create(true)}>
+                {submitting ? "Launching…" : `Launch to ${audience ?? "?"} customers`}
+              </button>
+            </>
+          }
+        >
+          <ul className="confirm-list">
+            <li><span className="k">Campaign</span><span className="v">{name}</span></li>
+            <li><span className="k">Audience</span><span className="v">{segment?.name} · {audience ?? "?"} customers</span></li>
+            <li><span className="k">Channel</span><span className="v">{channel}</span></li>
+          </ul>
+          <div className="message-preview">{previewText}</div>
+          <p className="hint" style={{ marginBottom: 0 }}>
+            Preview shown for a sample recipient. Sending starts immediately and can’t be undone.
+          </p>
+        </Modal>
+      )}
     </>
   );
 }
