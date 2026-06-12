@@ -67,12 +67,31 @@ def dashboard():
             for week, total in sorted(buckets.items())
         ]
 
+        # Customer health by recency of last order. Same thresholds the
+        # frontend uses for per-row tiers; one outer-join GROUP BY at this
+        # volume, a materialised rollup at scale.
+        last_orders = db.execute(
+            select(Customer.id, func.max(Order.created_at))
+            .outerjoin(Order, Order.customer_id == Customer.id)
+            .group_by(Customer.id)).all()
+        now = utcnow()
+        health = {"active": 0, "cooling": 0, "lapsed": 0}
+        for _, last in last_orders:
+            days = (now - last).days if last is not None else None
+            if days is None or days > 120:
+                health["lapsed"] += 1
+            elif days > 45:
+                health["cooling"] += 1
+            else:
+                health["active"] += 1
+
         return {
             "customers": customers,
             "orders": orders,
             "revenue": round(revenue, 2),
             "campaigns": campaigns_count,
             "weekly_revenue": weekly_revenue,
+            "customer_health": health,
         }
     finally:
         db.close()

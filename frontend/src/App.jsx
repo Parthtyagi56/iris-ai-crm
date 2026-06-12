@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
-  LayoutGrid, Users, Target, Send, Sparkles, Menu, X, SearchX,
+  LayoutGrid, Users, Target, Send, Sparkles, Menu, X, SearchX, Plug,
 } from "lucide-react";
 import { api } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -13,12 +13,27 @@ import Segments from "./pages/Segments.jsx";
 import Campaigns from "./pages/Campaigns.jsx";
 import CampaignNew from "./pages/CampaignNew.jsx";
 import CampaignDetail from "./pages/CampaignDetail.jsx";
+import DataSources from "./pages/DataSources.jsx";
 
-const NAV = [
-  { to: "/", label: "Dashboard", Icon: LayoutGrid, end: true },
-  { to: "/customers", label: "Customers", Icon: Users },
-  { to: "/segments", label: "Audiences", Icon: Target },
-  { to: "/campaigns", label: "Campaigns", Icon: Send },
+const NAV_GROUPS = [
+  {
+    label: "Overview",
+    items: [{ to: "/", label: "Dashboard", Icon: LayoutGrid, end: true }],
+  },
+  {
+    label: "Engage",
+    items: [
+      { to: "/segments", label: "Audiences", Icon: Target },
+      { to: "/campaigns", label: "Campaigns", Icon: Send },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { to: "/customers", label: "Customers", Icon: Users },
+      { to: "/data", label: "Data sources", Icon: Plug },
+    ],
+  },
 ];
 
 export default function App() {
@@ -55,12 +70,16 @@ export default function App() {
             </button>
           </div>
           <nav aria-label="Main" className={navOpen ? "open" : ""}>
-            <div className="nav-label">Workspace</div>
-            {NAV.map(({ to, label, Icon, end }) => (
-              <NavLink key={to} to={to} end={end}>
-                <span className="nav-icon"><Icon size={16} strokeWidth={2} /></span>
-                {label}
-              </NavLink>
+            {NAV_GROUPS.map((g) => (
+              <div key={g.label} className="nav-group">
+                <div className="nav-label">{g.label}</div>
+                {g.items.map(({ to, label, Icon, end }) => (
+                  <NavLink key={to} to={to} end={end}>
+                    <span className="nav-icon"><Icon size={16} strokeWidth={2} /></span>
+                    {label}
+                  </NavLink>
+                ))}
+              </div>
             ))}
           </nav>
           <div
@@ -76,6 +95,7 @@ export default function App() {
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/customers" element={<Customers />} />
+              <Route path="/data" element={<DataSources />} />
               <Route path="/segments" element={<Segments aiEnabled={!!ai?.enabled} />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/campaigns/new" element={<CampaignNew aiEnabled={!!ai?.enabled} />} />

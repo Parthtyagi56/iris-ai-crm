@@ -251,7 +251,34 @@ and receipts arrive for minutes, not milliseconds, after dispatch.
 - **Alembic, queues, websockets, React Query** — each has its "at scale"
   note above.
 
-## 12. Likely interview questions, with answers
+## 12. Data ingestion: API-first, CSV as the universal adapter
+
+**Decision.** Ingestion is a contract, not a connector zoo. Two live paths:
+
+1. **Bulk REST endpoints** (`POST /api/customers/bulk`, `POST /api/orders/bulk`)
+   with defensive semantics: customers dedupe on email (re-pushing a feed is
+   safe), orders resolve `customer_email → id` and *report* unknowns instead
+   of failing the batch. This is the surface a Shopify webhook bridge, a CDP
+   (Segment HTTP destination), or a reverse-ETL job from a warehouse targets.
+2. **CSV import in the UI** — parsed client-side (header validation, preview,
+   500-row chunks), then sent through the *same* bulk endpoints. No second
+   ingestion code path to keep correct; the UI is just another API client.
+   CSV matters because it's the lowest common denominator: every commerce
+   tool, POS, and spreadsheet exports it — so "new data provider" day one
+   is an export, not an integration project.
+
+**Why not build native connectors (Shopify OAuth etc.)?** Each one is auth
+plumbing + rate-limit handling + schema mapping for a single vendor — days
+of work that demonstrates nothing new architecturally. The Data sources page
+shows the catalog honestly: every tile works today via the two live paths;
+native connectors are roadmap. **At scale:** per-provider webhook receivers
+(verified like the channel receipts: signature over raw bytes), a queue
+between receipt and processing, upsert semantics keyed on a stable external
+id (`shopify:order:123`) instead of email, and incremental sync cursors.
+The industrial alternative — Fivetran/Airbyte into a warehouse, reverse-ETL
+back — is the right answer when the brand already has a data team.
+
+## 13. Likely interview questions, with answers
 
 **"Walk me through what happens when I click Launch."**
 Audience is materialised from the campaign's rules snapshot → one `queued`
@@ -290,6 +317,13 @@ Three endpoints, one pattern: forced tool call + Pydantic validation. A
 framework would add an abstraction layer over ~60 lines of direct API code
 that I'd then have to explain. I'd reach for one when chains get deep or
 tools get numerous.
+
+**"How does a new data source — say our POS vendor — get into this?"**
+Day one: their CSV export through the importer, or a 20-line script hitting
+the bulk endpoints — both land on the same idempotent ingest contract.
+Properly: a webhook receiver for that vendor (HMAC-verified like the channel
+receipts), queue, upsert keyed on their stable external id. The contract
+doesn't change; only the transport does. (Full argument in §12.)
 
 **"How would you A/B test message variants?"**
 The draft endpoint already returns labelled variants. Add `variant` to the

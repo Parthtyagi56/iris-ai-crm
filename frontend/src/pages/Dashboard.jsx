@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  IndianRupee, Users, ShoppingBag, Send, TrendingUp, TrendingDown, Plus,
+  IndianRupee, Users, ShoppingBag, Send, TrendingUp, TrendingDown,
+  Plus, Activity, Trophy, Radio,
 } from "lucide-react";
 import { api, fmtDate, inr, pct } from "../api.js";
 import { usePageTitle } from "../App.jsx";
@@ -9,7 +10,7 @@ import { SkeletonCards, SkeletonRows } from "../components/Skeleton.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 
 // Pure-SVG sparkline; data is the real 12-week revenue series from the API.
-function Sparkline({ points, width = 420, height = 64 }) {
+function Sparkline({ points, width = 420, height = 56 }) {
   if (!points || points.length < 2) return null;
   const max = Math.max(...points), min = Math.min(...points);
   const range = max - min || 1;
@@ -53,7 +54,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     api.get("/api/dashboard").then(setStats).catch((e) => setError(e.message));
-    api.get("/api/campaigns").then((r) => setCampaigns(r.campaigns.slice(0, 5))).catch(() => setCampaigns([]));
+    api.get("/api/campaigns").then((r) => setCampaigns(r.campaigns)).catch(() => setCampaigns([]));
   }, []);
 
   const series = stats?.weekly_revenue?.map((w) => w.revenue) ?? [];
@@ -62,6 +63,34 @@ export default function Dashboard() {
     series.length >= 3 ? (series[series.length - 2] - series[series.length - 3]) / (series[series.length - 3] || 1)
     : series.length === 2 ? (series[1] - series[0]) / (series[0] || 1)
     : null;
+
+  // Cross-campaign aggregates and per-channel rollup, all from the
+  // status-projection stats the campaigns API already returns.
+  const agg = useMemo(() => {
+    if (!campaigns || campaigns.length === 0) return null;
+    const sum = (fn) => campaigns.reduce((a, c) => a + fn(c), 0);
+    const total = sum((c) => c.stats.total_messages);
+    const sent = sum((c) => c.stats.funnel.sent);
+    const delivered = sum((c) => c.stats.funnel.delivered);
+    const opened = sum((c) => c.stats.funnel.opened);
+    const clicked = sum((c) => c.stats.funnel.clicked);
+    const converted = sum((c) => c.stats.funnel.converted);
+    const revenue = sum((c) => c.stats.attributed_revenue);
+    const byChannel = {};
+    for (const c of campaigns) {
+      const b = (byChannel[c.channel] ??= { campaigns: 0, total: 0, sent: 0, delivered: 0, revenue: 0 });
+      b.campaigns += 1;
+      b.total += c.stats.total_messages;
+      b.sent += c.stats.funnel.sent;
+      b.delivered += c.stats.funnel.delivered;
+      b.revenue += c.stats.attributed_revenue;
+    }
+    const top = [...campaigns].sort(
+      (a, b) => b.stats.attributed_revenue - a.stats.attributed_revenue)[0];
+    return { total, sent, delivered, opened, clicked, converted, revenue, byChannel, top };
+  }, [campaigns]);
+
+  const health = stats?.customer_health;
 
   return (
     <>
@@ -79,31 +108,110 @@ export default function Dashboard() {
         <SkeletonCards count={4} />
       ) : stats && (
         <div className="bento">
+          {/* Row 1 — money and base health */}
           <div className="card hero-card span-2 rise" style={{ "--i": 1 }}>
             <div className="hero-top">
               <div>
                 <div className="label"><IndianRupee size={13} /> Lifetime revenue</div>
                 <div className="value">{inr(stats.revenue)}</div>
-                <div className="sub">{inr(stats.revenue / Math.max(stats.customers, 1))} per customer · last 12 weeks below</div>
+                <div className="sub">
+                  {agg ? <>{inr(agg.revenue)} attributed to campaigns · </> : null}
+                  {inr(stats.revenue / Math.max(stats.customers, 1))} per customer
+                </div>
               </div>
               <Trend delta={weekDelta} />
             </div>
             <Sparkline points={series} />
           </div>
+
           <div className="card rise" style={{ "--i": 2 }}>
-            <div className="label"><Users size={13} /> Customers</div>
+            <div className="label"><Users size={13} /> Customer base</div>
             <div className="value">{stats.customers.toLocaleString("en-IN")}</div>
-            <div className="sub">{(stats.orders / Math.max(stats.customers, 1)).toFixed(1)} orders each</div>
+            {health && (
+              <>
+                <div className="health-bar" role="img"
+                     aria-label={`${health.active} active, ${health.cooling} cooling, ${health.lapsed} lapsed`}>
+                  <span className="seg-active" style={{ width: `${(health.active / stats.customers) * 100}%` }} />
+                  <span className="seg-cooling" style={{ width: `${(health.cooling / stats.customers) * 100}%` }} />
+                  <span className="seg-lapsed" style={{ width: `${(health.lapsed / stats.customers) * 100}%` }} />
+                </div>
+                <div className="legend">
+                  <span><i className="dot-active" />{health.active} active</span>
+                  <span><i className="dot-cooling" />{health.cooling} cooling</span>
+                  <span><i className="dot-lapsed" />{health.lapsed} lapsed</span>
+                </div>
+              </>
+            )}
           </div>
+
           <div className="card rise" style={{ "--i": 3 }}>
+            <div className="label"><Activity size={13} /> Engagement</div>
+            <div className="value">{agg ? agg.sent.toLocaleString("en-IN") : 0}</div>
+            <div className="sub">messages sent across campaigns</div>
+            {agg && agg.sent > 0 && (
+              <div className="stat-pairs">
+                <span className="k">Delivery</span><span className="v">{pct(agg.total ? agg.delivered / agg.total : 0)}</span>
+                <span className="k">Opens</span><span className="v">{pct(agg.delivered ? agg.opened / agg.delivered : 0)}</span>
+                <span className="k">Clicks</span><span className="v">{pct(agg.delivered ? agg.clicked / agg.delivered : 0)}</span>
+                <span className="k">Orders won</span><span className="v">{agg.converted}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Row 2 — where the money comes from */}
+          <div className="card span-2 rise" style={{ "--i": 4 }}>
+            <div className="label"><Radio size={13} /> Channel performance</div>
+            {agg ? (
+              <table className="mini">
+                <thead>
+                  <tr><th>Channel</th><th className="num">Campaigns</th><th className="num">Sent</th><th className="num">Delivery</th><th className="num">Revenue</th></tr>
+                </thead>
+                <tbody>
+                  {Object.entries(agg.byChannel).map(([ch, b]) => (
+                    <tr key={ch}>
+                      <td><span className="badge channel">{ch}</span></td>
+                      <td className="num">{b.campaigns}</td>
+                      <td className="num">{b.sent.toLocaleString("en-IN")}</td>
+                      <td className="num">{b.total ? pct(b.delivered / b.total) : "—"}</td>
+                      <td className="num">{inr(b.revenue)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="sub">Launch a campaign to see channel splits.</div>
+            )}
+          </div>
+
+          <div className="card rise" style={{ "--i": 5 }}>
+            <div className="label"><Trophy size={13} /> Top campaign</div>
+            {agg?.top ? (
+              <>
+                <div className="value" style={{ fontSize: 19, lineHeight: 1.3 }}>{agg.top.name}</div>
+                <div className="stat-pairs">
+                  <span className="k">Revenue</span><span className="v">{inr(agg.top.stats.attributed_revenue)}</span>
+                  <span className="k">Delivery</span><span className="v">{pct(agg.top.stats.delivery_rate)}</span>
+                  <span className="k">Channel</span><span className="v" style={{ textTransform: "uppercase", fontSize: 11 }}>{agg.top.channel}</span>
+                  <span className="k">Audience</span><span className="v">{agg.top.audience_size}</span>
+                </div>
+              </>
+            ) : (
+              <div className="sub">No campaigns yet.</div>
+            )}
+          </div>
+
+          <div className="card rise" style={{ "--i": 6 }}>
             <div className="label"><ShoppingBag size={13} /> Orders</div>
             <div className="value">{stats.orders.toLocaleString("en-IN")}</div>
-            <div className="sub">{inr(stats.revenue / Math.max(stats.orders, 1))} avg value</div>
+            <div className="stat-pairs">
+              <span className="k">Avg value</span><span className="v">{inr(stats.revenue / Math.max(stats.orders, 1))}</span>
+              <span className="k">Per customer</span><span className="v">{(stats.orders / Math.max(stats.customers, 1)).toFixed(1)}</span>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="panel rise" style={{ "--i": 4 }}>
+      <div className="panel rise" style={{ "--i": 7 }}>
         <h2><Send size={15} /> Recent campaigns</h2>
         {campaigns === null ? (
           <table><SkeletonRows cols={6} rows={3} /></table>
@@ -125,7 +233,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {campaigns.map((c) => (
+                {campaigns.slice(0, 5).map((c) => (
                   <tr key={c.id} className="clickable" onClick={() => navigate(`/campaigns/${c.id}`)}>
                     <td><strong>{c.name}</strong></td>
                     <td><span className="badge channel">{c.channel}</span></td>

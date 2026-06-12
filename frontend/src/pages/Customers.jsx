@@ -7,6 +7,18 @@ import EmptyState from "../components/EmptyState.jsx";
 
 const LIMIT = 25;
 
+// Presentation-layer tier; mirrors the dashboard health thresholds.
+// Real segmentation lives in the rule DSL — this is a glanceable label.
+function tier(c) {
+  const days = c.last_order_at
+    ? (Date.now() - new Date(c.last_order_at + "Z").getTime()) / 86400000
+    : Infinity;
+  if (days > 120) return ["lapsed-tier", "Lapsed"];
+  if (c.total_spend >= 15000) return ["vip", "VIP"];
+  if (days > 45) return ["atrisk", "At risk"];
+  return ["active-tier", "Active"];
+}
+
 export default function Customers() {
   usePageTitle("Customers");
   const [q, setQ] = useState("");
@@ -49,24 +61,28 @@ export default function Customers() {
           <table>
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>City</th>
+                <th>Name</th><th>Email</th><th>City</th><th>Tier</th>
                 <th className="num">Orders</th><th className="num">Total spend</th><th>Last order</th>
               </tr>
             </thead>
             {data === null ? (
-              <SkeletonRows cols={6} rows={8} />
+              <SkeletonRows cols={7} rows={8} />
             ) : (
               <tbody>
-                {data.customers.map((c) => (
-                  <tr key={c.id}>
-                    <td><strong>{c.name}</strong></td>
-                    <td className="muted">{c.email}</td>
-                    <td>{c.city || "—"}</td>
-                    <td className="num">{c.order_count}</td>
-                    <td className="num">{inr(c.total_spend)}</td>
-                    <td className="muted">{fmtDate(c.last_order_at)}</td>
-                  </tr>
-                ))}
+                {data.customers.map((c) => {
+                  const [cls, label] = tier(c);
+                  return (
+                    <tr key={c.id}>
+                      <td><strong>{c.name}</strong></td>
+                      <td className="muted">{c.email}</td>
+                      <td>{c.city || "—"}</td>
+                      <td><span className={`badge ${cls}`}>{label}</span></td>
+                      <td className="num">{c.order_count}</td>
+                      <td className="num">{inr(c.total_spend)}</td>
+                      <td className="muted">{fmtDate(c.last_order_at)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             )}
           </table>
