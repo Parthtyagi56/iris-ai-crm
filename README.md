@@ -51,20 +51,26 @@ Events are the source of truth (append-only ledger); `messages.status` is a
 read-model projection. Funnel stats read straight off `status_rank`, so the
 insights page needs no event-table scans.
 
-## AI integration (three touchpoints, one pattern)
+## AI integration (four touchpoints, one pattern)
 
 | Where | What |
 |---|---|
+| `POST /api/ai/chat` | **The copilot** — a conversation that ends in a complete, editable campaign plan: audience rules + live count, channel + reasoning, message variants. Approving it creates a *draft* campaign; launch still goes through the human-approval modal |
 | `POST /api/ai/segment` | Natural language → segment rule DSL → live audience count + sample, in one round trip |
 | `POST /api/ai/draft` | Objective → 2–3 message variants with channel-specific constraints and personalisation tokens |
 | `GET /api/ai/campaigns/{id}/summary` | Campaign stats → 2–3 sentence analyst-style narrative |
 
-The pattern everywhere: the model is forced into a tool call whose schema
-mirrors our Pydantic schemas, and the output is **validated before anything
-trusts it**. The AI never writes SQL — it writes a small whitelisted rule
-DSL (`app/schemas.py`) that a deterministic compiler
-(`app/services/segment_engine.py`) turns into a query. AI proposes; code
-disposes.
+The pattern everywhere: the model must return JSON matching our Pydantic
+schemas (Anthropic: forced tool call; OpenAI-compatible: JSON mode), and the
+output is **validated before anything trusts it**. The AI never writes SQL —
+it writes a small whitelisted rule DSL (`app/schemas.py`) that a
+deterministic compiler (`app/services/segment_engine.py`) turns into a
+query. AI proposes; code disposes.
+
+**Provider-agnostic, free to run**: works with Anthropic *or* any
+OpenAI-compatible endpoint — free tiers of Groq, Google Gemini, and
+OpenRouter, or a local Ollama. `backend/.env.example` has copy-paste
+configs; the UI degrades gracefully with no key at all.
 
 ## Repository layout
 

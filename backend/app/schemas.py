@@ -117,3 +117,12 @@ class AIDraftRequest(BaseModel):
     objective: str
     audience_description: str = ""
     channel: Channel = "whatsapp"
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(max_length=4000)
+
+
+class AIChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)

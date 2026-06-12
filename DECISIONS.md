@@ -188,8 +188,32 @@ loud 4xx/5xx, not silent data corruption.
 | `POST /api/ai/draft` | objective + channel → 2-3 labelled variants, channel-specific constraints, personalisation tokens |
 | `GET /api/ai/campaigns/{id}/summary` | funnel stats JSON → 2-3 sentence analyst narrative |
 
+**The copilot (the distinguisher).** `POST /api/ai/chat` is a chat interface
+over the same artifact discipline: the marketer describes a goal, the model
+returns `{reply, plan?}` where the plan is a complete campaign proposal —
+segment name + rules, channel + one-line reasoning, 1–3 message variants.
+The backend validates the rules with Pydantic, attaches a live audience
+count, and the UI renders it as an **editable artifact card**, not executed
+actions. "Looks right — create it" calls the same `/api/segments` and
+`/api/campaigns` endpoints a human would; launch still goes through the
+approval modal. So the copilot sits exactly between "chat-first" and "agent":
+it can *think and decide* (audience, channel, copy in one turn) but cannot
+*act* past the draft boundary. If a proposed plan fails validation, the chat
+says so honestly instead of letting a broken plan reach the approve button.
+Deliberately NOT a tool-calling agent loop: one structured response per turn
+is simpler to validate, works identically on free-tier providers without
+reliable function calling, and keeps worst-case latency at one model call.
+
+**Provider-agnostic, free-tier friendly.** The AI layer speaks two dialects:
+Anthropic (forced tool call) and any OpenAI-compatible `/chat/completions`
+(JSON mode + schema-in-prompt, with a fallback when a provider rejects
+`response_format`). Groq, Google Gemini, OpenRouter free models, and local
+Ollama all work via three env vars. Direct `httpx` call rather than the
+OpenAI SDK: one less dependency, and the request is ~20 lines.
+
 **Graceful degradation.** `GET /api/ai/status` lets the frontend hide AI
-affordances when no key is configured; every AI feature has a manual path.
+affordances when no key is configured; every AI feature has a manual path
+(the copilot page shows free-key setup steps instead of a dead chat).
 
 **At scale:** prompt caching for the static system prompts, a cheaper model
 for drafts, and few-shot examples mined from accepted/rejected artifacts.

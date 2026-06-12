@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink, Route, Routes, useLocation } from "react-router-dom";
 import {
   LayoutGrid, Users, Target, Send, Sparkles, Menu, X, SearchX, Plug,
+  MessageSquareText,
 } from "lucide-react";
 import { api } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
@@ -14,6 +15,7 @@ import Campaigns from "./pages/Campaigns.jsx";
 import CampaignNew from "./pages/CampaignNew.jsx";
 import CampaignDetail from "./pages/CampaignDetail.jsx";
 import DataSources from "./pages/DataSources.jsx";
+import Copilot from "./pages/Copilot.jsx";
 
 const NAV_GROUPS = [
   {
@@ -23,6 +25,7 @@ const NAV_GROUPS = [
   {
     label: "Engage",
     items: [
+      { to: "/copilot", label: "Copilot", Icon: MessageSquareText },
       { to: "/segments", label: "Audiences", Icon: Target },
       { to: "/campaigns", label: "Campaigns", Icon: Send },
     ],
@@ -96,6 +99,7 @@ export default function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/customers" element={<Customers />} />
               <Route path="/data" element={<DataSources />} />
+              <Route path="/copilot" element={<Copilot aiEnabled={!!ai?.enabled} />} />
               <Route path="/segments" element={<Segments aiEnabled={!!ai?.enabled} />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/campaigns/new" element={<CampaignNew aiEnabled={!!ai?.enabled} />} />
