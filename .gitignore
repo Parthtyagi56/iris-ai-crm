@@ -3,7 +3,7 @@ __pycache__/
 .venv/
 .env
 crm.db
-.claude/settings.local.json
+.claude/
 .pytest_cache/
 node_modules/
 dist/

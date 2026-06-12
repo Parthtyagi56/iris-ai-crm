@@ -85,6 +85,10 @@ backend/
   tests/                    12 tests: state machine + DSL semantics
 channel-service/
   app/main.py               the simulator (no shared code with the CRM)
+frontend/
+  src/
+    pages/                  dashboard · customers · audiences · campaigns
+    components/RuleEditor   recursive editor for the segment rule DSL
 ```
 
 ## Running locally
@@ -101,6 +105,11 @@ pip install -r requirements.txt
 cp .env.example .env            # add ANTHROPIC_API_KEY for AI features
 python -m app.seed
 uvicorn app.main:app --port 8000
+
+# Terminal 3 — frontend (Vite + React, http://localhost:5173)
+cd frontend
+npm install
+npm run dev                     # VITE_API_URL defaults to http://localhost:8000
 ```
 
 API docs at http://localhost:8000/docs. Tests: `cd backend && pytest`.
