@@ -183,6 +183,7 @@ export default function Dashboard() {
           {/* Row 2 — where the money comes from */}
           <div className="card span-2 rise" style={{ "--i": 4 }}>
             <div className="label"><Radio size={13} /> Channel performance</div>
+            <div className="table-wrap">
             <table className="mini">
               <thead>
                 <tr><th>Channel</th><th className="num">Campaigns</th><th className="num">Sent</th><th className="num">Delivery</th><th className="num">Revenue</th></tr>
@@ -202,6 +203,7 @@ export default function Dashboard() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           <div className="card rise" style={{ "--i": 5 }}>
