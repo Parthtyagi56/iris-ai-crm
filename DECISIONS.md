@@ -211,14 +211,17 @@ library. Custom Toast/Modal/Skeleton/EmptyState/ErrorBoundary components.
   "human approves" half of the POV, so it shows audience size, channel, and
   a rendered sample message at the moment of commitment.
 
-**Design language.** Warm paper ground, ink type, terracotta accent,
-Fraunces (serif) for display and stat numerals, hairline borders, no
-gradients. Two reasons: (1) the customer is a fashion/D2C brand — the tool
-should feel like it belongs in their world, editorial rather than
-crypto-dashboard; (2) the ubiquitous dark-navy-purple-gradient look signals
-template, and a take-home that will be judged on product taste shouldn't
-look templated. Semantic color is reserved for state (green converted, red
-failed, amber dispatching), so the accent never competes with meaning.
+**Design language.** Slate neutrals with a teal action color, Plus Jakarta
+Sans for display/stats over Inter for UI, deep slate sidebar against a
+light content area, lucide icons, dot-style status badges. Deliberate
+avoidances: purple-gradient-on-dark (the generic AI-dashboard signature)
+and Tailwind-default indigo. The dashboard is a bento grid whose hero card
+charts a real 12-week revenue series from the API (pure-SVG sparkline — a
+chart library for one sparkline is a dependency tax). Motion is CSS-only:
+staggered entrances with a `prefers-reduced-motion` fallback; the only
+icon dependency is tree-shaken lucide-react (~10 KB gzip added). Semantic
+color is reserved for state (green converted, red failed, amber
+dispatching), so the accent never competes with meaning.
 
 **Polling vs WebSockets for the live funnel.** 3-second polling against an
 indexed projection read. WebSockets/SSE are better at scale (no thundering
