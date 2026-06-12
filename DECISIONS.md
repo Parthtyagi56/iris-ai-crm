@@ -269,8 +269,14 @@ and receipts arrive for minutes, not milliseconds, after dispatch.
 
 ## 11. What was consciously cut
 
-- **Auth / multi-tenancy** — single-brand demo. At scale: org-scoped rows +
-  JWT; the rule DSL whitelist already prevents cross-tenant query leaks.
+- **Full multi-tenancy** — single-brand demo. The workspace has a real
+  profile system (one seeded marketer account, login with opaque bearer
+  tokens, PBKDF2-SHA256 hashing from the stdlib, avatar upload with
+  server-derived filenames, token rotation on password change), and only
+  profile endpoints require auth — campaign endpoints stay open because
+  the demo is single-tenant. At scale: org-scoped rows + JWT/OIDC on
+  everything; the rule DSL whitelist already prevents cross-tenant query
+  leaks.
 - **Replay-window on HMAC** (timestamp tolerance) — documented above.
 - **Scheduled/recurring campaigns, A/B sends, control groups** — the data
   model anticipates them (draft endpoint already returns variants; rules

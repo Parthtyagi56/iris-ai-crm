@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 .env
 crm.db
+backend/uploads/
 .claude/
 .pytest_cache/
 node_modules/

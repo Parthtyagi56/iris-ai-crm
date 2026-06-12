@@ -1,13 +1,16 @@
 import logging
 from datetime import timedelta
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, select
 
 from .database import Base, SessionLocal, engine
 from .models import Campaign, Customer, Order, utcnow
-from .routers import ai, campaigns, ingest, receipts, segments
+from .routers import ai, campaigns, ingest, profile, receipts, segments
+from .services.auth import ensure_default_user
 
 logging.basicConfig(level=logging.INFO)
 
@@ -27,12 +30,20 @@ app.add_middleware(
 # For this scope, create-on-boot replaces migrations; with more time/scale
 # this becomes Alembic.
 Base.metadata.create_all(bind=engine)
+ensure_default_user()
 
 app.include_router(ingest.router)
 app.include_router(segments.router)
 app.include_router(campaigns.router)
 app.include_router(receipts.router)
 app.include_router(ai.router)
+app.include_router(profile.router)
+
+# Avatar images. Local disk is fine for a single-instance demo; at scale
+# this is S3/GCS with the same avatar_url contract.
+_uploads = Path(__file__).resolve().parent.parent / "uploads"
+_uploads.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_uploads), name="uploads")
 
 
 @app.get("/health")

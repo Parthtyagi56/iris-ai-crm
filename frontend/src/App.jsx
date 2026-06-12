@@ -4,7 +4,7 @@ import {
   LayoutGrid, Users, Target, Send, Sparkles, Menu, X, SearchX, Plug,
   MessageSquareText,
 } from "lucide-react";
-import { api } from "./api.js";
+import { api, API_URL, cachedUser } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
 import EmptyState from "./components/EmptyState.jsx";
@@ -16,6 +16,7 @@ import CampaignNew from "./pages/CampaignNew.jsx";
 import CampaignDetail from "./pages/CampaignDetail.jsx";
 import DataSources from "./pages/DataSources.jsx";
 import Copilot from "./pages/Copilot.jsx";
+import Profile from "./pages/Profile.jsx";
 
 const NAV_GROUPS = [
   {
@@ -42,10 +43,18 @@ const NAV_GROUPS = [
 export default function App() {
   const [ai, setAi] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [me, setMe] = useState(cachedUser());
   const location = useLocation();
 
   useEffect(() => {
     api.get("/api/ai/status").then(setAi).catch(() => setAi({ enabled: false }));
+    const sync = () => setMe(cachedUser());
+    window.addEventListener("aurelia:user", sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener("aurelia:user", sync);
+      window.removeEventListener("storage", sync);
+    };
   }, []);
 
   // Close the mobile drawer on navigation.
@@ -85,6 +94,19 @@ export default function App() {
               </div>
             ))}
           </nav>
+          <NavLink to="/profile" className="user-chip" title="My profile">
+            {me?.avatar_url ? (
+              <img src={API_URL + me.avatar_url} alt="" width={28} height={28} />
+            ) : (
+              <span className="user-chip-initials">
+                {(me?.name || "?").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+              </span>
+            )}
+            <span className="user-chip-text">
+              <strong>{me?.name || "Sign in"}</strong>
+              <span>{me ? "View profile" : "Workspace account"}</span>
+            </span>
+          </NavLink>
           <div
             className={`ai-pill ${ai?.enabled ? "on" : "off"}`}
             title={ai?.enabled ? `AI features enabled (${ai.model})` : "Set ANTHROPIC_API_KEY in backend/.env to enable AI"}
@@ -100,6 +122,7 @@ export default function App() {
               <Route path="/customers" element={<Customers />} />
               <Route path="/data" element={<DataSources />} />
               <Route path="/copilot" element={<Copilot aiEnabled={!!ai?.enabled} />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="/segments" element={<Segments aiEnabled={!!ai?.enabled} />} />
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/campaigns/new" element={<CampaignNew aiEnabled={!!ai?.enabled} />} />

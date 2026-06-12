@@ -33,6 +33,34 @@ def utcnow() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+class User(Base):
+    """The marketer operating this workspace (single-brand demo: one row,
+    seeded on boot). Profile endpoints require this user's bearer token."""
+    __tablename__ = "users"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=uid)
+    name: Mapped[str] = mapped_column(String(120))
+    username: Mapped[str] = mapped_column(String(60), unique=True)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    phone: Mapped[str] = mapped_column(String(32), default="")
+    date_of_birth: Mapped[str] = mapped_column(String(10), default="")  # YYYY-MM-DD
+    gender: Mapped[str] = mapped_column(String(24), default="")
+    address: Mapped[str] = mapped_column(String(255), default="")
+    city: Mapped[str] = mapped_column(String(80), default="")
+    state: Mapped[str] = mapped_column(String(80), default="")
+    country: Mapped[str] = mapped_column(String(80), default="India")
+    zip_code: Mapped[str] = mapped_column(String(12), default="")
+    role: Mapped[str] = mapped_column(String(40), default="Brand admin")
+    status: Mapped[str] = mapped_column(String(16), default="active")
+    avatar_url: Mapped[str] = mapped_column(String(255), default="")
+    password_hash: Mapped[str] = mapped_column(String(255))
+    api_token: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utcnow, onupdate=utcnow)
+
+
 class Customer(Base):
     __tablename__ = "customers"
 
