@@ -6,6 +6,7 @@ import {
 import { api, API_URL } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
+import Modal from "../components/Modal.jsx";
 
 // Minimal CSV parser: quoted fields, escaped quotes, CRLF.
 function parseCSV(text) {
@@ -54,14 +55,54 @@ const SCHEMAS = {
 };
 
 const CONNECTORS = [
-  { name: "Shopify", Icon: ShoppingCart, via: "orders webhook → REST" },
-  { name: "WooCommerce", Icon: Store, via: "REST or CSV export" },
-  { name: "BigCommerce", Icon: Boxes, via: "REST or CSV export" },
-  { name: "Square POS", Icon: CreditCard, via: "transactions export" },
-  { name: "Google Sheets", Icon: Sheet, via: "CSV download" },
-  { name: "Meta Lead Ads", Icon: Megaphone, via: "leads CSV / API" },
-  { name: "Segment CDP", Icon: Webhook, via: "HTTP destination" },
-  { name: "Warehouse", Icon: Database, via: "reverse-ETL → REST" },
+  {
+    name: "Shopify", Icon: ShoppingCart, via: "orders webhook → REST", csvKind: "orders",
+    steps: ["In Shopify Admin go to Orders → Export → CSV (plain CSV).",
+            "Rename columns to customer_email, amount, category (optional), created_at (optional).",
+            "Import the file below — or point an order-created webhook bridge at the API."],
+  },
+  {
+    name: "WooCommerce", Icon: Store, via: "REST or CSV export", csvKind: "orders",
+    steps: ["Use any order-export plugin (or WP All Export) to download orders as CSV.",
+            "Map columns to customer_email, amount, category, created_at.",
+            "Import below, or script the WooCommerce REST API into the bulk endpoint."],
+  },
+  {
+    name: "BigCommerce", Icon: Boxes, via: "REST or CSV export", csvKind: "orders",
+    steps: ["Orders → Export → CSV from the BigCommerce control panel.",
+            "Map columns to customer_email, amount, category, created_at.",
+            "Import the file below."],
+  },
+  {
+    name: "Square POS", Icon: CreditCard, via: "transactions export", csvKind: "orders",
+    steps: ["Square Dashboard → Transactions → Export.",
+            "Keep the buyer email column as customer_email and the total as amount.",
+            "Import the file below."],
+  },
+  {
+    name: "Google Sheets", Icon: Sheet, via: "CSV download", csvKind: "customers",
+    steps: ["File → Download → Comma separated values (.csv).",
+            "Header row: name,email,phone,city.",
+            "Import the file below."],
+  },
+  {
+    name: "Meta Lead Ads", Icon: Megaphone, via: "leads CSV / API", csvKind: "customers",
+    steps: ["Meta Ads Manager → Lead forms → Download leads (CSV).",
+            "Map full_name → name and email → email.",
+            "Import the file below to add the leads as customers."],
+  },
+  {
+    name: "Segment CDP", Icon: Webhook, via: "HTTP destination", csvKind: "customers",
+    steps: ["Add an HTTP API destination in Segment.",
+            "Point identify calls at the customers endpoint, order events at the orders endpoint (snippet below).",
+            "Data lands in real time — no CSV needed."],
+  },
+  {
+    name: "Warehouse", Icon: Database, via: "reverse-ETL → REST", csvKind: "customers",
+    steps: ["Write a SELECT for the customers (or orders) you want synced.",
+            "Schedule a reverse-ETL job (Hightouch/Census or a cron script) that POSTs rows to the bulk endpoint in 500-row chunks.",
+            "Re-running is safe — customers dedupe on email."],
+  },
 ];
 
 export default function DataSources() {
@@ -75,8 +116,18 @@ export default function DataSources() {
   const [problem, setProblem] = useState("");
   const [importing, setImporting] = useState(false);
   const [summary, setSummary] = useState("");
+  const [connecting, setConnecting] = useState(null); // connector for modal
+  const csvCardRef = useRef(null);
 
   const schema = SCHEMAS[kind];
+
+  const startCsvImport = (connector) => {
+    setKind(connector.csvKind);
+    setHeaders([]); setRows([]); setFileName(""); setProblem(""); setSummary("");
+    setConnecting(null);
+    csvCardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    toast(`Import type set to ${connector.csvKind} for ${connector.name}`, "info");
+  };
 
   const onFile = async (e) => {
     const file = e.target.files?.[0];
@@ -162,7 +213,7 @@ POST ${API_URL}/api/orders/bulk
           </p>
         </div>
 
-        <div className="panel method-card rise" style={{ marginTop: 0, "--i": 2 }}>
+        <div className="panel method-card rise" ref={csvCardRef} style={{ marginTop: 0, "--i": 2 }}>
           <h3><FileSpreadsheet size={16} /> CSV import <span className="status-chip">Live</span></h3>
           <p>
             The universal adapter — every commerce tool exports CSV. Header row required:
@@ -220,15 +271,51 @@ POST ${API_URL}/api/orders/bulk
           connector per tile is the roadmap — the ingest contract they'd target already exists.
         </p>
         <div className="connector-grid">
-          {CONNECTORS.map(({ name, Icon, via }) => (
-            <div key={name} className="connector-tile">
-              <Icon size={18} />
-              <span className="name">{name}</span>
-              <span className="via">{via}</span>
-            </div>
+          {CONNECTORS.map((c) => (
+            <button
+              key={c.name}
+              type="button"
+              className="connector-tile"
+              onClick={() => setConnecting(c)}
+              aria-label={`Connect ${c.name}`}
+            >
+              <c.Icon size={18} />
+              <span className="name">{c.name}</span>
+              <span className="via">{c.via}</span>
+            </button>
           ))}
         </div>
       </div>
+
+      {connecting && (
+        <Modal
+          title={`Connect ${connecting.name}`}
+          onClose={() => setConnecting(null)}
+          footer={
+            <>
+              <button className="ghost" onClick={() => setConnecting(null)}>Close</button>
+              <button className="primary" onClick={() => startCsvImport(connecting)}>
+                <FileSpreadsheet size={14} /> Import {connecting.csvKind} CSV now
+              </button>
+            </>
+          }
+        >
+          <ol className="connect-steps">
+            {connecting.steps.map((s, i) => <li key={i}>{s}</li>)}
+          </ol>
+          <p className="hint" style={{ marginBottom: 6 }}>
+            Prefer pushing directly? Point {connecting.name} (or a small bridge script) at:
+          </p>
+          <div className="code-block">
+{`POST ${API_URL}${SCHEMAS[connecting.csvKind].endpoint}
+Content-Type: application/json
+
+${connecting.csvKind === "orders"
+  ? '[{"customer_email":"asha@example.com","amount":2499,\n  "category":"Dresses"}]'
+  : '[{"name":"Asha Mehta","email":"asha@example.com",\n  "phone":"+91…","city":"Mumbai"}]'}`}
+          </div>
+        </Modal>
+      )}
     </>
   );
 }

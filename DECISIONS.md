@@ -196,10 +196,15 @@ The backend validates the rules with Pydantic, attaches a live audience
 count, and the UI renders it as an **editable artifact card**, not executed
 actions. "Looks right — create it" calls the same `/api/segments` and
 `/api/campaigns` endpoints a human would; launch still goes through the
-approval modal. So the copilot sits exactly between "chat-first" and "agent":
-it can *think and decide* (audience, channel, copy in one turn) but cannot
-*act* past the draft boundary. If a proposed plan fails validation, the chat
-says so honestly instead of letting a broken plan reach the approve button.
+approval modal — or, once the marketer green-lights the plan, **"Create &
+launch"** executes it end to end in one click (segment → campaign →
+dispatch). That maps the product onto all four AI shapes in the brief:
+classic AI-at-key-steps (Audiences/drafts/summaries), chat-first (the
+copilot), think-decide-act (the plan card: audience + channel + copy in one
+turn), and true agent (one-click end-to-end execution of the brainstormed
+goal — the goal approval *is* the human gate). If a proposed plan fails
+validation, the chat says so honestly instead of letting a broken plan
+reach the approve button.
 Deliberately NOT a tool-calling agent loop: one structured response per turn
 is simpler to validate, works identically on free-tier providers without
 reliable function calling, and keeps worst-case latency at one model call.

@@ -718,10 +718,18 @@ code.rules {
   padding: 13px 14px;
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  font-weight: 500;
   gap: 6px;
+  cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
-.connector-tile:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.connector-tile:hover { border-color: var(--accent); box-shadow: var(--shadow-md); transform: translateY(-2px); background: var(--surface); }
+.connect-steps { margin: 0 0 14px; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: var(--ink-2); }
+.connect-steps li::marker { color: var(--accent-deep); font-weight: 700; }
 .connector-tile svg { color: var(--ink-2); }
 .connector-tile .name { font-weight: 600; font-size: 13px; }
 .connector-tile .via { font-size: 11px; color: var(--muted); }

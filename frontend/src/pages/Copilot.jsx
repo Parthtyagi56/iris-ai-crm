@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Send as SendIcon, KeyRound, CheckCircle2 } from "lucide-react";
+import { Sparkles, Send as SendIcon, KeyRound, CheckCircle2, Rocket } from "lucide-react";
 import { api } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -65,10 +65,18 @@ function PlanCard({ plan, onApprove, approving }) {
       </div>
 
       <div className="plan-actions">
-        <span className="hint">Creates the audience and a draft campaign — nothing sends until you approve the launch.</span>
-        <button className="primary" disabled={approving} onClick={() => onApprove(plan, variantIdx)}>
-          <CheckCircle2 size={14} /> {approving ? "Creating…" : "Looks right — create it"}
-        </button>
+        <span className="hint">
+          Draft keeps the launch behind the approval screen; launch executes the plan end to end right now.
+        </span>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button disabled={approving} onClick={() => onApprove(plan, variantIdx, false)}>
+            <CheckCircle2 size={14} /> Create draft
+          </button>
+          <button className="primary" disabled={approving} onClick={() => onApprove(plan, variantIdx, true)}>
+            <Rocket size={14} />
+            {approving ? "Working…" : `Create & launch to ${plan.preview ? plan.preview.count.toLocaleString("en-IN") : "?"}`}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -108,7 +116,9 @@ export default function Copilot({ aiEnabled }) {
     }
   };
 
-  const approve = async (plan, variantIdx) => {
+  // launch=false: agent stops at a draft (approval modal still guards send).
+  // launch=true: the marketer green-lit the plan — execute it end to end.
+  const approve = async (plan, variantIdx, launch) => {
     setApproving(true);
     try {
       const seg = await api.post("/api/segments", {
@@ -123,8 +133,13 @@ export default function Copilot({ aiEnabled }) {
         channel: plan.channel,
         message_template: plan.variants[variantIdx].content,
       });
-      toast(`Draft campaign created for ${seg.audience_count} customers`, "success");
-      navigate(`/campaigns/${camp.id}`); // launch happens there, behind the approval modal
+      if (launch) {
+        await api.post(`/api/campaigns/${camp.id}/launch`, {});
+        toast(`Launching "${plan.campaign_name}" to ${seg.audience_count} customers`, "success");
+      } else {
+        toast(`Draft campaign created for ${seg.audience_count} customers`, "success");
+      }
+      navigate(`/campaigns/${camp.id}`);
     } catch (e) {
       toast(e.message, "error");
       setApproving(false);
