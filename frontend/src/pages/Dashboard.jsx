@@ -33,10 +33,26 @@ export default function Dashboard() {
         <SkeletonCards count={4} />
       ) : stats && (
         <div className="cards">
-          <div className="card"><div className="label">Customers</div><div className="value">{stats.customers.toLocaleString("en-IN")}</div></div>
-          <div className="card"><div className="label">Orders</div><div className="value">{stats.orders.toLocaleString("en-IN")}</div></div>
-          <div className="card"><div className="label">Lifetime revenue</div><div className="value">{inr(stats.revenue)}</div></div>
-          <div className="card"><div className="label">Campaigns</div><div className="value">{stats.campaigns}</div></div>
+          <div className="card">
+            <div className="label">Customers</div>
+            <div className="value">{stats.customers.toLocaleString("en-IN")}</div>
+            <div className="sub">{(stats.orders / Math.max(stats.customers, 1)).toFixed(1)} orders each on average</div>
+          </div>
+          <div className="card">
+            <div className="label">Orders</div>
+            <div className="value">{stats.orders.toLocaleString("en-IN")}</div>
+            <div className="sub">{inr(stats.revenue / Math.max(stats.orders, 1))} average order value</div>
+          </div>
+          <div className="card">
+            <div className="label">Lifetime revenue</div>
+            <div className="value">{inr(stats.revenue)}</div>
+            <div className="sub">{inr(stats.revenue / Math.max(stats.customers, 1))} per customer</div>
+          </div>
+          <div className="card">
+            <div className="label">Campaigns</div>
+            <div className="value">{stats.campaigns}</div>
+            <div className="sub">approval-gated sends</div>
+          </div>
         </div>
       )}
 
