@@ -85,6 +85,33 @@ def dashboard():
             else:
                 health["active"] += 1
 
+        # Category demand: volume, revenue, and how *sticky* each category is
+        # (share of its buyers who came back for it). Repeat rate is the
+        # double-down signal; low-volume categories are the focus list.
+        cat_rows = db.execute(
+            select(Order.category, Order.customer_id, func.count(),
+                   func.sum(Order.amount))
+            .where(Order.category != "")
+            .group_by(Order.category, Order.customer_id)).all()
+        cats: dict = {}
+        for category, _cust, n, amt in cat_rows:
+            c = cats.setdefault(category, {
+                "orders": 0, "revenue": 0.0, "buyers": 0, "repeat_buyers": 0})
+            c["orders"] += n
+            c["revenue"] += amt
+            c["buyers"] += 1
+            if n >= 2:
+                c["repeat_buyers"] += 1
+        categories = sorted(
+            ({"name": k,
+              "orders": v["orders"],
+              "revenue": round(v["revenue"], 2),
+              "buyers": v["buyers"],
+              "repeat_rate": round(v["repeat_buyers"] / v["buyers"], 4)
+              if v["buyers"] else 0}
+             for k, v in cats.items()),
+            key=lambda c: c["revenue"], reverse=True)
+
         return {
             "customers": customers,
             "orders": orders,
@@ -92,6 +119,7 @@ def dashboard():
             "campaigns": campaigns_count,
             "weekly_revenue": weekly_revenue,
             "customer_health": health,
+            "categories": categories,
         }
     finally:
         db.close()

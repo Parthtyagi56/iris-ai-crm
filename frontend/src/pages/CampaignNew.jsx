@@ -17,13 +17,14 @@ export default function CampaignNew({ aiEnabled }) {
   const toast = useToast();
 
   const [segments, setSegments] = useState(null);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(params.get("name") || "");
   const [segmentId, setSegmentId] = useState(params.get("segment") || "");
   const [channel, setChannel] = useState("whatsapp");
   const [template, setTemplate] = useState("");
   const [audience, setAudience] = useState(null);
+  const [suggested, setSuggested] = useState(null); // data-driven channel hint
 
-  const [objective, setObjective] = useState("");
+  const [objective, setObjective] = useState(params.get("objective") || "");
   const [drafting, setDrafting] = useState(false);
   const [variants, setVariants] = useState([]);
 
@@ -38,6 +39,15 @@ export default function CampaignNew({ aiEnabled }) {
       // Preselect the only/linked segment for a one-less-click flow.
       if (!params.get("segment") && r.segments.length === 1) setSegmentId(r.segments[0].id);
     }).catch((e) => setError(e.message));
+
+    // Recommend the channel with the best click rate so far — decision
+    // support from the brand's own history, not a hardcoded default.
+    api.get("/api/campaigns").then((r) => {
+      const best = r.campaigns
+        .filter((c) => c.stats.funnel.sent >= 50)
+        .sort((a, b) => b.stats.click_rate - a.stats.click_rate)[0];
+      if (best) setSuggested({ channel: best.channel, rate: best.stats.click_rate });
+    }).catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const segment = useMemo(
@@ -138,8 +148,17 @@ export default function CampaignNew({ aiEnabled }) {
           <label className="field">
             <span>Channel</span>
             <select value={channel} onChange={(e) => setChannel(e.target.value)}>
-              {CHANNELS.map((c) => <option key={c} value={c}>{c}</option>)}
+              {CHANNELS.map((c) => (
+                <option key={c} value={c}>
+                  {c}{suggested?.channel === c ? "  ★ suggested" : ""}
+                </option>
+              ))}
             </select>
+            {suggested && (
+              <span className="hint" style={{ display: "block", marginTop: 5 }}>
+                ★ {suggested.channel} has your best click rate so far ({(suggested.rate * 100).toFixed(1)}%)
+              </span>
+            )}
           </label>
         </div>
 

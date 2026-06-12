@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { SearchX } from "lucide-react";
+import { SearchX, Crown } from "lucide-react";
 import { api, fmtDate, inr } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { SkeletonRows } from "../components/Skeleton.jsx";
@@ -24,7 +24,14 @@ export default function Customers() {
   const [q, setQ] = useState("");
   const [offset, setOffset] = useState(0);
   const [data, setData] = useState(null);
+  const [vips, setVips] = useState(null);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    api.get(`/api/customers?limit=5&sort=top_spend`)
+      .then((d) => setVips(d.customers))
+      .catch(() => setVips([]));
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -56,17 +63,48 @@ export default function Customers() {
 
       {error && <div className="error-banner">{error}</div>}
 
+      <div className="panel" style={{ marginTop: 0, marginBottom: 16 }}>
+        <h2><Crown size={15} /> High-value customers</h2>
+        <p className="panel-sub">Top lifetime spenders and what they buy — the audience to protect with VIP perks and early access.</p>
+        {vips === null ? (
+          <table className="mini"><SkeletonRows cols={6} rows={3} /></table>
+        ) : (
+          <div className="table-wrap">
+            <table className="mini">
+              <thead>
+                <tr>
+                  <th>Name</th><th>City</th><th>Buys mostly</th>
+                  <th className="num">Orders</th><th className="num">Lifetime spend</th><th>Last order</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vips.map((c) => (
+                  <tr key={c.id}>
+                    <td><strong>{c.name}</strong></td>
+                    <td>{c.city || "—"}</td>
+                    <td>{c.top_category ? <span className="badge channel">{c.top_category}</span> : "—"}</td>
+                    <td className="num">{c.order_count}</td>
+                    <td className="num"><strong>{inr(c.total_spend)}</strong></td>
+                    <td className="muted">{fmtDate(c.last_order_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       <div className="panel" style={{ marginTop: 0 }}>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Name</th><th>Email</th><th>City</th><th>Tier</th>
+                <th>Name</th><th>Email</th><th>City</th><th>Tier</th><th>Buys mostly</th>
                 <th className="num">Orders</th><th className="num">Total spend</th><th>Last order</th>
               </tr>
             </thead>
             {data === null ? (
-              <SkeletonRows cols={7} rows={8} />
+              <SkeletonRows cols={8} rows={8} />
             ) : (
               <tbody>
                 {data.customers.map((c) => {
@@ -77,6 +115,7 @@ export default function Customers() {
                       <td className="muted">{c.email}</td>
                       <td>{c.city || "—"}</td>
                       <td><span className={`badge ${cls}`}>{label}</span></td>
+                      <td>{c.top_category ? <span className="badge channel">{c.top_category}</span> : "—"}</td>
                       <td className="num">{c.order_count}</td>
                       <td className="num">{inr(c.total_spend)}</td>
                       <td className="muted">{fmtDate(c.last_order_at)}</td>

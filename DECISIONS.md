@@ -278,6 +278,16 @@ id (`shopify:order:123`) instead of email, and incremental sync cursors.
 The industrial alternative — Fivetran/Airbyte into a warehouse, reverse-ETL
 back — is the right answer when the brand already has a data team.
 
+**Category analytics and moments.** Orders carry a product category
+(seeded with per-customer preferences so repeat-purchase analytics mean
+something; accepted on the ingest APIs and CSV import). The dashboard turns
+that into a demand view — revenue, order volume, and repeat rate per
+category, flagging the leader ("double down") and the laggard ("focus") —
+plus an event playbook of upcoming retail moments (EOSS, Raksha Bandhan,
+Diwali…) with one-click campaign prefill. The moment list is a curated
+constant; a real version reads a calendar service, but the product shape —
+moment → suggested audience → prefilled objective — is the point.
+
 ## 13. Likely interview questions, with answers
 
 **"Walk me through what happens when I click Launch."**

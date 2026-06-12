@@ -24,6 +24,13 @@ random.seed(42)
 CITIES = ["Mumbai", "Delhi", "Bengaluru", "Chennai", "Hyderabad",
           "Pune", "Kolkata", "Jaipur"]
 
+# Each customer gets a preferred category; ~70% of their orders land there.
+# That correlation is what makes "most repeated category" analytics worth
+# looking at instead of uniform noise.
+CATEGORIES = ["Dresses", "Ethnic wear", "Tops", "Footwear",
+              "Accessories", "Beauty"]
+CATEGORY_WEIGHTS = [0.26, 0.22, 0.18, 0.14, 0.12, 0.08]
+
 PROFILES = [
     # (share, orders_range, amount_range, days_since_last_order_range)
     ("vip", 0.15, (6, 15), (1500, 9000), (1, 30)),
@@ -62,6 +69,8 @@ def run():
                 continue
             seen_emails.add(email)
             _, orders_range, amount_range, recency_range = pick_profile()
+            preferred_category = random.choices(
+                CATEGORIES, weights=CATEGORY_WEIGHTS)[0]
             joined = now - timedelta(days=random.randint(30, 540))
             customer = Customer(
                 name=fake.name(),
@@ -83,9 +92,12 @@ def run():
                 for _ in range(n_orders - 1)
             ) + [last_order]
             for d in dates:
+                category = (preferred_category if random.random() < 0.7
+                            else random.choice(CATEGORIES))
                 orders.append(Order(
                     customer=customer,
                     amount=round(random.uniform(*amount_range), 2),
+                    category=category,
                     created_at=d,
                 ))
 

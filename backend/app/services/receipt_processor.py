@@ -20,6 +20,7 @@ idempotency guarantees demonstrates the design.
 """
 import logging
 
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -77,10 +78,20 @@ def process_event(db: Session, evt: ReceiptEvent) -> str:
 
     # Closed-loop attribution: a conversion creates an order tied to the
     # campaign, so "revenue attributed" on the insights page is real data.
+    # Category = the customer's most-bought one (a win-back re-buys what
+    # they love); the channel doesn't know our catalog.
     if evt.event_type == "converted":
+        top_cat = db.execute(
+            select(Order.category, func.count())
+            .where(Order.customer_id == msg.customer_id,
+                   Order.category != "")
+            .group_by(Order.category)
+            .order_by(func.count().desc())
+            .limit(1)).first()
         db.add(Order(
             customer_id=msg.customer_id,
             amount=float(evt.meta.get("order_amount", 0.0)),
+            category=top_cat[0] if top_cat else "",
             campaign_id=msg.campaign_id,
         ))
 

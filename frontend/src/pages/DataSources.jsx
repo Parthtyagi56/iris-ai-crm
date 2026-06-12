@@ -42,10 +42,11 @@ const SCHEMAS = {
   orders: {
     endpoint: "/api/orders/bulk",
     required: ["customer_email", "amount"],
-    optional: ["created_at"],
+    optional: ["category", "created_at"],
     toPayload: (r) => ({
       customer_email: r.customer_email,
       amount: Number(r.amount),
+      category: r.category || "",
       ...(r.created_at ? { created_at: r.created_at } : {}),
     }),
     summarize: (res) => `${res.created} created, ${res.unknown_customer} unknown customers skipped`,

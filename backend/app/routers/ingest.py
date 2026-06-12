@@ -39,16 +39,26 @@ def bulk_customers(body: list[CustomerIn], db: Session = Depends(get_db)):
 
 @router.get("/customers")
 def list_customers(q: str = "", limit: int = 25, offset: int = 0,
-                   db: Session = Depends(get_db)):
+                   sort: str = "recent", db: Session = Depends(get_db)):
     stmt = select(Customer)
     if q:
         like = f"%{q.lower()}%"
         stmt = stmt.where(func.lower(Customer.name).like(like)
                           | func.lower(Customer.email).like(like))
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
-    rows = db.execute(
-        stmt.order_by(Customer.created_at.desc()).limit(limit).offset(offset)
-    ).scalars().all()
+
+    if sort == "top_spend":
+        # Highest lifetime spend first — powers the high-value spotlight.
+        spend_sq = (
+            select(Order.customer_id,
+                   func.sum(Order.amount).label("spend"))
+            .group_by(Order.customer_id).subquery())
+        stmt = (stmt.join(spend_sq, spend_sq.c.customer_id == Customer.id)
+                .order_by(spend_sq.c.spend.desc()))
+    else:
+        stmt = stmt.order_by(Customer.created_at.desc())
+
+    rows = db.execute(stmt.limit(limit).offset(offset)).scalars().all()
     return {
         "total": total,
         "customers": [_customer_summary(db, c) for c in rows],
@@ -62,11 +72,21 @@ def _customer_summary(db: Session, c: Customer) -> dict:
                func.max(Order.created_at))
         .where(Order.customer_id == c.id)
     ).one()
+    # Most-bought category ("what do they shop for") for the page of rows
+    # shown; a per-customer rollup column at scale.
+    top_category = db.execute(
+        select(Order.category, func.count())
+        .where(Order.customer_id == c.id, Order.category != "")
+        .group_by(Order.category)
+        .order_by(func.count().desc())
+        .limit(1)
+    ).first()
     return {
         "id": c.id, "name": c.name, "email": c.email, "phone": c.phone,
         "city": c.city, "created_at": c.created_at,
         "total_spend": round(spend, 2), "order_count": count,
         "last_order_at": last,
+        "top_category": top_category[0] if top_category else None,
     }
 
 
@@ -90,7 +110,7 @@ def _insert_orders(items: list[OrderIn], db: Session) -> dict:
         if not cid:
             unknown += 1
             continue
-        order = Order(customer_id=cid, amount=o.amount)
+        order = Order(customer_id=cid, amount=o.amount, category=o.category)
         if o.created_at:
             order.created_at = o.created_at.replace(tzinfo=None)
         db.add(order)

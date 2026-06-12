@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Campaign, Message, Order, Segment
+from ..models import Campaign, Customer, Message, Order, Segment
 from ..schemas import CampaignCreate, RuleGroup
 from ..services.dispatcher import dispatch_campaign
 from ..services.receipt_processor import STATUS_RANK
@@ -104,13 +104,16 @@ def _stats(db: Session, c: Campaign, include_messages: bool = False) -> dict:
     }
     if include_messages:
         rows = db.execute(
-            select(Message).where(Message.campaign_id == c.id)
+            select(Message, Customer.name)
+            .join(Customer, Customer.id == Message.customer_id)
+            .where(Message.campaign_id == c.id)
             .order_by(Message.updated_at.desc()).limit(50)
-        ).scalars().all()
+        ).all()
         out["recent_messages"] = [
-            {"id": m.id, "customer_id": m.customer_id, "status": m.status,
+            {"id": m.id, "customer_id": m.customer_id,
+             "customer_name": name, "status": m.status,
              "content": m.content, "failure_reason": m.failure_reason,
              "updated_at": m.updated_at}
-            for m in rows
+            for m, name in rows
         ]
     return out

@@ -169,7 +169,7 @@ body {
 .ai-pill.on { border-color: rgba(45, 212, 191, 0.35); color: #5eead4; background: rgba(13, 148, 136, 0.12); }
 
 /* ---------------- content ---------------- */
-.content { flex: 1; padding: 32px 40px 70px; max-width: 1180px; min-width: 0; }
+.content { flex: 1; padding: 32px 40px 70px; min-width: 0; }
 
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
 .page-head h1 {
@@ -260,6 +260,36 @@ body {
 /* dense mini table (channel performance) */
 table.mini th, table.mini td { padding: 7px 8px; font-size: 12.5px; }
 table.mini th { position: static; box-shadow: none; }
+
+/* category demand bars */
+.cat-row { display: grid; grid-template-columns: 96px 1fr 150px; gap: 12px; align-items: center; padding: 5px 0; }
+.cat-row .cat-name { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-bar { background: var(--surface-2); border-radius: 5px; height: 18px; overflow: hidden; }
+.cat-bar > div { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #14b8a6, #0d9488); min-width: 2px; transition: width 0.5s ease; }
+.cat-row.lagging .cat-bar > div { background: var(--line-strong); }
+.cat-row .cat-meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.cat-row .cat-meta b { color: var(--ink); font-weight: 700; }
+.flag {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  border-radius: 999px; padding: 1.5px 7px; margin-left: 6px; vertical-align: 1px;
+}
+.flag.hot { color: var(--green); background: var(--green-wash); }
+.flag.focus { color: var(--amber); background: var(--amber-wash); }
+
+/* moments (event playbook) */
+.moments { display: flex; flex-direction: column; gap: 10px; }
+.moment { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; transition: border-color 0.15s, box-shadow 0.15s; }
+.moment:hover { border-color: var(--accent); box-shadow: var(--shadow-sm); }
+.moment .when {
+  flex-shrink: 0; width: 52px; text-align: center; border-radius: 8px;
+  background: var(--surface-2); padding: 6px 4px;
+}
+.moment .when b { display: block; font-family: var(--font-display); font-size: 16px; font-weight: 800; line-height: 1.1; }
+.moment .when span { font-size: 9.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.moment .what { min-width: 0; flex: 1; }
+.moment .what .name { font-weight: 600; font-size: 13px; }
+.moment .what .pitch { font-size: 11.5px; color: var(--muted); }
+.moment button { font-size: 12px; padding: 6px 11px; }
 
 .hero-card { display: flex; flex-direction: column; }
 .hero-card .hero-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }

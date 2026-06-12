@@ -65,6 +65,7 @@ class CustomerOut(CustomerIn):
 class OrderIn(BaseModel):
     customer_email: str
     amount: float
+    category: str = ""
     created_at: datetime | None = None
 
 

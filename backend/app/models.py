@@ -53,6 +53,8 @@ class Order(Base):
     customer_id: Mapped[str] = mapped_column(
         ForeignKey("customers.id"), index=True)
     amount: Mapped[float] = mapped_column(Float)
+    # Product category ("Dresses", "Footwear", …) — powers demand analytics.
+    category: Mapped[str] = mapped_column(String(40), default="", index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     # Attribution: set when this order resulted from a campaign message
     # (the channel simulator emits `converted` events).

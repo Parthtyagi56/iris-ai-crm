@@ -160,11 +160,12 @@ export default function CampaignDetail({ aiEnabled }) {
           <div className="table-wrap">
             <table>
               <thead>
-                <tr><th>Status</th><th>Content</th><th>Failure</th><th>Updated</th></tr>
+                <tr><th>Recipient</th><th>Status</th><th>Personalised content</th><th>Failure</th><th>Updated</th></tr>
               </thead>
               <tbody>
                 {campaign.recent_messages.map((m) => (
                   <tr key={m.id}>
+                    <td><strong>{m.customer_name || m.customer_id.slice(0, 8)}</strong></td>
                     <td><span className={`badge ${m.status}`}>{m.status}</span></td>
                     <td style={{ maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {m.content}

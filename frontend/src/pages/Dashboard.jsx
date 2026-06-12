@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   IndianRupee, Users, ShoppingBag, Send, TrendingUp, TrendingDown,
-  Plus, Activity, Trophy, Radio,
+  Plus, Activity, Trophy, Radio, Shirt, CalendarHeart,
 } from "lucide-react";
 import { api, fmtDate, inr, pct } from "../api.js";
 import { usePageTitle } from "../App.jsx";
@@ -32,6 +32,28 @@ function Sparkline({ points, width = 420, height = 56 }) {
       <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="3" fill="#0d9488" />
     </svg>
   );
+}
+
+const ALL_CHANNELS = ["whatsapp", "rcs", "sms", "email"];
+
+// Retail moments worth a campaign. A real version reads a calendar service;
+// the playbook shape (moment -> audience -> objective) is the product idea.
+const MOMENTS = [
+  { name: "End of Season Sale", month: 5, day: 26, pitch: "Clear summer stock — tease early access to your active buyers" },
+  { name: "Raksha Bandhan", month: 7, day: 28, pitch: "Gifting spike — push Accessories & Beauty to recent shoppers" },
+  { name: "Navratri & festive kickoff", month: 9, day: 11, pitch: "Ethnic wear surge — win back lapsed ethnic-wear buyers" },
+  { name: "Diwali", month: 10, day: 8, pitch: "Biggest gifting week of the year — VIP early access + win-back" },
+  { name: "Wedding season", month: 10, day: 20, pitch: "Ethnic wear + Footwear bundles for high-AOV customers" },
+  { name: "Valentine's Day", month: 1, day: 14, pitch: "Dresses & gifting for couples — target active city shoppers" },
+];
+
+function upcomingMoments(count = 4) {
+  const now = new Date();
+  return MOMENTS.map((m) => {
+    let d = new Date(now.getFullYear(), m.month, m.day);
+    if (d < now) d = new Date(now.getFullYear() + 1, m.month, m.day);
+    return { ...m, date: d, days: Math.ceil((d - now) / 86400000) };
+  }).sort((a, b) => a.days - b.days).slice(0, count);
 }
 
 function Trend({ delta }) {
@@ -161,26 +183,25 @@ export default function Dashboard() {
           {/* Row 2 — where the money comes from */}
           <div className="card span-2 rise" style={{ "--i": 4 }}>
             <div className="label"><Radio size={13} /> Channel performance</div>
-            {agg ? (
-              <table className="mini">
-                <thead>
-                  <tr><th>Channel</th><th className="num">Campaigns</th><th className="num">Sent</th><th className="num">Delivery</th><th className="num">Revenue</th></tr>
-                </thead>
-                <tbody>
-                  {Object.entries(agg.byChannel).map(([ch, b]) => (
+            <table className="mini">
+              <thead>
+                <tr><th>Channel</th><th className="num">Campaigns</th><th className="num">Sent</th><th className="num">Delivery</th><th className="num">Revenue</th></tr>
+              </thead>
+              <tbody>
+                {ALL_CHANNELS.map((ch) => {
+                  const b = agg?.byChannel[ch];
+                  return (
                     <tr key={ch}>
                       <td><span className="badge channel">{ch}</span></td>
-                      <td className="num">{b.campaigns}</td>
-                      <td className="num">{b.sent.toLocaleString("en-IN")}</td>
-                      <td className="num">{b.total ? pct(b.delivered / b.total) : "—"}</td>
-                      <td className="num">{inr(b.revenue)}</td>
+                      <td className="num">{b ? b.campaigns : 0}</td>
+                      <td className="num">{b ? b.sent.toLocaleString("en-IN") : "—"}</td>
+                      <td className="num">{b?.total ? pct(b.delivered / b.total) : "—"}</td>
+                      <td className="num">{b ? inr(b.revenue) : <span className="muted">untested</span>}</td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="sub">Launch a campaign to see channel splits.</div>
-            )}
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           <div className="card rise" style={{ "--i": 5 }}>
@@ -208,10 +229,53 @@ export default function Dashboard() {
               <span className="k">Per customer</span><span className="v">{(stats.orders / Math.max(stats.customers, 1)).toFixed(1)}</span>
             </div>
           </div>
+
+          {/* Row 3 — what sells, and when to strike next */}
+          <div className="card span-2 rise" style={{ "--i": 7 }}>
+            <div className="label"><Shirt size={13} /> Category demand · revenue, repeat rate</div>
+            {stats.categories?.length ? (() => {
+              const maxRev = stats.categories[0].revenue || 1;
+              const lowest = stats.categories[stats.categories.length - 1].name;
+              return stats.categories.map((c, i) => (
+                <div key={c.name} className={`cat-row ${c.name === lowest ? "lagging" : ""}`}>
+                  <span className="cat-name">
+                    {c.name}
+                    {i === 0 && <span className="flag hot">double down</span>}
+                    {c.name === lowest && <span className="flag focus">focus</span>}
+                  </span>
+                  <div className="cat-bar"><div style={{ width: `${(c.revenue / maxRev) * 100}%` }} /></div>
+                  <span className="cat-meta"><b>{inr(c.revenue)}</b> · {c.orders} orders · {pct(c.repeat_rate)} repeat</span>
+                </div>
+              ));
+            })() : (
+              <div className="sub">No categorised orders yet — include a category column when importing.</div>
+            )}
+          </div>
+
+          <div className="card span-2 rise" style={{ "--i": 8 }}>
+            <div className="label"><CalendarHeart size={13} /> Upcoming moments · plan the spike before it happens</div>
+            <div className="moments">
+              {upcomingMoments().map((m) => (
+                <div key={m.name} className="moment">
+                  <div className="when">
+                    <b>{m.days}d</b>
+                    <span>{m.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>
+                  </div>
+                  <div className="what">
+                    <div className="name">{m.name}</div>
+                    <div className="pitch">{m.pitch}</div>
+                  </div>
+                  <button onClick={() => navigate(`/campaigns/new?name=${encodeURIComponent(m.name + " push")}&objective=${encodeURIComponent(m.pitch)}`)}>
+                    Plan
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="panel rise" style={{ "--i": 7 }}>
+      <div className="panel rise" style={{ "--i": 9 }}>
         <h2><Send size={15} /> Recent campaigns</h2>
         {campaigns === null ? (
           <table><SkeletonRows cols={6} rows={3} /></table>
