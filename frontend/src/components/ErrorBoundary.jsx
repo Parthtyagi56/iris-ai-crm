@@ -1,4 +1,5 @@
 import { Component } from "react";
+import { AlertTriangle } from "lucide-react";
 
 export default class ErrorBoundary extends Component {
   state = { error: null };
@@ -11,7 +12,7 @@ export default class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="empty-state" style={{ marginTop: 80 }}>
-          <div className="empty-icon">⚠</div>
+          <div className="empty-icon"><AlertTriangle size={20} /></div>
           <h3>Something went wrong</h3>
           <p className="muted">{String(this.state.error?.message || this.state.error)}</p>
           <button onClick={() => { this.setState({ error: null }); window.location.href = "/"; }}>

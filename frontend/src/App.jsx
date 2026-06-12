@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
-import { NavLink, Route, Routes } from "react-router-dom";
+import { NavLink, Route, Routes, useLocation } from "react-router-dom";
+import {
+  LayoutGrid, Users, Target, Send, Sparkles, Menu, X, SearchX,
+} from "lucide-react";
 import { api } from "./api.js";
 import { ToastProvider } from "./components/Toast.jsx";
 import ErrorBoundary from "./components/ErrorBoundary.jsx";
@@ -11,49 +14,52 @@ import Campaigns from "./pages/Campaigns.jsx";
 import CampaignNew from "./pages/CampaignNew.jsx";
 import CampaignDetail from "./pages/CampaignDetail.jsx";
 
-const ic = {
-  dashboard: <path d="M2.5 2.5h4.5v6H2.5zM9.5 2.5h4v3.5h-4zM9.5 8.5h4v5h-4zM2.5 11h4.5v2.5H2.5z" />,
-  customers: <><circle cx="5.5" cy="5" r="2.4" /><path d="M1.5 13.5c0-2.2 1.8-4 4-4s4 1.8 4 4" /><circle cx="11" cy="5.5" r="1.8" /><path d="M11.5 9.6c1.7.3 3 1.8 3 3.6" /></>,
-  audiences: <><circle cx="8" cy="8" r="5.7" /><circle cx="8" cy="8" r="3" /><circle cx="8" cy="8" r="0.6" fill="currentColor" /></>,
-  campaigns: <path d="M13.8 2.2 2.4 6.6l3.8 1.9 1.4 4.3 2.5-3.2 3.7-7.4zM6.2 8.5l7.6-6.3" />,
-};
-
-function Icon({ name }) {
-  return (
-    <svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor"
-         strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {ic[name]}
-    </svg>
-  );
-}
-
 const NAV = [
-  { to: "/", label: "Dashboard", icon: "dashboard", end: true },
-  { to: "/customers", label: "Customers", icon: "customers" },
-  { to: "/segments", label: "Audiences", icon: "audiences" },
-  { to: "/campaigns", label: "Campaigns", icon: "campaigns" },
+  { to: "/", label: "Dashboard", Icon: LayoutGrid, end: true },
+  { to: "/customers", label: "Customers", Icon: Users },
+  { to: "/segments", label: "Audiences", Icon: Target },
+  { to: "/campaigns", label: "Campaigns", Icon: Send },
 ];
 
 export default function App() {
   const [ai, setAi] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     api.get("/api/ai/status").then(setAi).catch(() => setAi({ enabled: false }));
   }, []);
 
+  // Close the mobile drawer on navigation.
+  useEffect(() => { setNavOpen(false); }, [location.pathname]);
+
   return (
     <ToastProvider>
       <div className="layout">
         <aside className="sidebar">
-          <div className="brand">
-            <span className="brand-mark">◆</span>Aurelia
-            <span className="brand-sub">Shopper engagement</span>
+          <div className="sidebar-head">
+            <div className="brand">
+              <span className="brand-mark">◆</span>
+              <span className="brand-text">
+                Aurelia
+                <span className="brand-sub">Shopper engagement</span>
+              </span>
+            </div>
+            <button
+              className="menu-btn"
+              aria-label={navOpen ? "Close menu" : "Open menu"}
+              aria-expanded={navOpen}
+              onClick={() => setNavOpen((o) => !o)}
+            >
+              {navOpen ? <X size={18} /> : <Menu size={18} />}
+            </button>
           </div>
-          <nav aria-label="Main">
-            {NAV.map((n) => (
-              <NavLink key={n.to} to={n.to} end={n.end}>
-                <span className="nav-icon"><Icon name={n.icon} /></span>
-                {n.label}
+          <nav aria-label="Main" className={navOpen ? "open" : ""}>
+            <div className="nav-label">Workspace</div>
+            {NAV.map(({ to, label, Icon, end }) => (
+              <NavLink key={to} to={to} end={end}>
+                <span className="nav-icon"><Icon size={16} strokeWidth={2} /></span>
+                {label}
               </NavLink>
             ))}
           </nav>
@@ -61,7 +67,8 @@ export default function App() {
             className={`ai-pill ${ai?.enabled ? "on" : "off"}`}
             title={ai?.enabled ? `AI features enabled (${ai.model})` : "Set ANTHROPIC_API_KEY in backend/.env to enable AI"}
           >
-            {ai === null ? "…" : ai.enabled ? `✦ AI on · ${ai.model}` : "AI off — set ANTHROPIC_API_KEY"}
+            <Sparkles size={12} />
+            {ai === null ? "…" : ai.enabled ? `AI on · ${ai.model}` : "AI off — set ANTHROPIC_API_KEY"}
           </div>
         </aside>
         <main className="content">
@@ -77,7 +84,7 @@ export default function App() {
                 path="*"
                 element={
                   <EmptyState
-                    icon="◆"
+                    icon={<SearchX size={22} />}
                     title="Page not found"
                     hint="This route doesn't exist."
                     action={<NavLink to="/"><button>Back to dashboard</button></NavLink>}

@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+
 // Recursive editor for the backend's segment rule DSL:
 //   { op: "and"|"or", conditions: [ {field, cmp, value} | nested group ] }
 // Mirrors the whitelist in backend/app/schemas.py — only these fields and
@@ -61,7 +63,7 @@ function ConditionRow({ cond, onChange, onRemove }) {
         placeholder={cond.cmp === "in" ? "Mumbai, Delhi" : meta.numeric ? "5000" : "Mumbai"}
         onChange={(e) => onChange({ ...cond, value: parseValue(e.target.value, cond.field, cond.cmp) })}
       />
-      <button className="danger-ghost" title="Remove condition" onClick={onRemove}>✕</button>
+      <button className="danger-ghost" title="Remove condition" aria-label="Remove condition" onClick={onRemove}><X size={14} /></button>
     </div>
   );
 }

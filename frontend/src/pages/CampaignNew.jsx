@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 import { api } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -170,14 +171,14 @@ export default function CampaignNew({ aiEnabled }) {
                 onChange={(e) => setObjective(e.target.value)}
               />
               <button className="shrink" disabled={drafting} onClick={draftWithAI}>
-                {drafting ? "Drafting…" : "✦ Draft with AI"}
+                <Sparkles size={14} /> {drafting ? "Drafting…" : "Draft with AI"}
               </button>
             </div>
             {variants.length > 0 && (
               <div className="variants" style={{ marginBottom: 14 }}>
                 {variants.map((v, i) => (
                   <div key={i} className="variant">
-                    <span className="label">✦ {v.label}</span>
+                    <span className="label"><Sparkles size={12} /> {v.label}</span>
                     <p>{v.content}</p>
                     <button onClick={() => { setTemplate(v.content); toast(`Using "${v.label}"`, "info"); }}>
                       Use this

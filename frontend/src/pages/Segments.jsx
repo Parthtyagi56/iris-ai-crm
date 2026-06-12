@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Sparkles, Target, ArrowRight } from "lucide-react";
 import { api, fmtDate } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -102,7 +103,7 @@ export default function Segments({ aiEnabled }) {
               onKeyDown={(e) => e.key === "Enter" && prompt.trim() && !generating && generate()}
             />
             <button className="primary shrink" disabled={!prompt.trim() || generating} onClick={generate}>
-              {generating ? "Thinking…" : "✦ Generate with AI"}
+              <Sparkles size={14} /> {generating ? "Thinking…" : "Generate with AI"}
             </button>
             <button className="shrink ghost" onClick={startManual}>Build manually</button>
           </div>
@@ -117,7 +118,11 @@ export default function Segments({ aiEnabled }) {
 
         {draft && (
           <div style={{ marginTop: 16 }}>
-            {draft.description && <p className="hint" style={{ marginTop: 0 }}>✦ {draft.description}</p>}
+            {draft.description && (
+              <p className="hint" style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                <Sparkles size={13} /> {draft.description}
+              </p>
+            )}
             <label className="field" style={{ maxWidth: 420 }}>
               <span>Audience name</span>
               <input
@@ -164,7 +169,7 @@ export default function Segments({ aiEnabled }) {
           <table><SkeletonRows cols={5} rows={3} /></table>
         ) : segments.length === 0 ? (
           <EmptyState
-            icon="◎"
+            icon={<Target size={20} />}
             title="No audiences yet"
             hint="Audiences are reusable, rule-based segments. Campaigns snapshot the rules at launch, so editing an audience later never rewrites history."
           />
@@ -182,10 +187,10 @@ export default function Segments({ aiEnabled }) {
                       {s.description && <div className="hint">{s.description}</div>}
                     </td>
                     <td><code className="rules">{humanizeRules(s.rules)}</code></td>
-                    <td>{s.created_by === "ai" ? <span className="badge ai">✦ AI</span> : <span className="badge">user</span>}</td>
+                    <td>{s.created_by === "ai" ? <span className="badge ai"><Sparkles size={11} /> AI</span> : <span className="badge">user</span>}</td>
                     <td className="muted">{fmtDate(s.created_at)}</td>
                     <td>
-                      <Link to={`/campaigns/new?segment=${s.id}`}><button>Use →</button></Link>
+                      <Link to={`/campaigns/new?segment=${s.id}`}><button>Use <ArrowRight size={14} /></button></Link>
                     </td>
                   </tr>
                 ))}

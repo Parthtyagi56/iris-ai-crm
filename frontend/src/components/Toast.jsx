@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { CheckCircle2, XCircle, Info } from "lucide-react";
 
 const ToastContext = createContext(() => {});
 
@@ -32,7 +33,7 @@ export function ToastProvider({ children }) {
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`} onClick={() => dismiss(t.id)}>
             <span className="toast-icon">
-              {t.kind === "success" ? "✓" : t.kind === "error" ? "✕" : "ℹ"}
+              {t.kind === "success" ? <CheckCircle2 size={16} /> : t.kind === "error" ? <XCircle size={16} /> : <Info size={16} />}
             </span>
             {t.message}
           </div>

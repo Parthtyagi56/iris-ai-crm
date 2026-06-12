@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Sparkles, AlertTriangle, Inbox } from "lucide-react";
 import { api, fmtDate, inr, pct } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
@@ -65,7 +66,7 @@ export default function CampaignDetail({ aiEnabled }) {
   if (error && !campaign) {
     return (
       <EmptyState
-        icon="⚠"
+        icon={<AlertTriangle size={20} />}
         title="Couldn't load campaign"
         hint={error}
         action={<Link to="/campaigns"><button>← All campaigns</button></Link>}
@@ -132,10 +133,10 @@ export default function CampaignDetail({ aiEnabled }) {
         {aiEnabled && (
           <div style={{ marginTop: 16 }}>
             {summary ? (
-              <div className="summary-box">✦ {summary}</div>
+              <div className="summary-box"><Sparkles size={15} /><span>{summary}</span></div>
             ) : (
               <button disabled={summarizing || stats.total_messages === 0} onClick={summarize}>
-                {summarizing ? "Analysing…" : "✦ AI performance summary"}
+                <Sparkles size={14} /> {summarizing ? "Analysing…" : "AI performance summary"}
               </button>
             )}
           </div>
@@ -151,7 +152,7 @@ export default function CampaignDetail({ aiEnabled }) {
         <h2>Recent messages</h2>
         {(campaign.recent_messages || []).length === 0 ? (
           <EmptyState
-            icon="✉"
+            icon={<Inbox size={20} />}
             title="No messages yet"
             hint={campaign.status === "draft" ? "Launch the campaign to start sending." : "Messages will appear as dispatch begins."}
           />

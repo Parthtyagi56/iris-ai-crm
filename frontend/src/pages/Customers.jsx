@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SearchX } from "lucide-react";
 import { api, fmtDate, inr } from "../api.js";
 import { usePageTitle } from "../App.jsx";
 import { SkeletonRows } from "../components/Skeleton.jsx";
@@ -71,7 +72,7 @@ export default function Customers() {
           </table>
         </div>
         {data && data.customers.length === 0 && (
-          <EmptyState icon="◔" title="No customers match" hint={`Nothing found for "${q}".`} />
+          <EmptyState icon={<SearchX size={20} />} title="No customers match" hint={`Nothing found for "${q}".`} />
         )}
         {data && data.total > 0 && (
           <div className="pager">
