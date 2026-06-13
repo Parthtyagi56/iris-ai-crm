@@ -135,7 +135,7 @@ export default function CampaignDetail({ aiEnabled }) {
             {summary ? (
               <div className="summary-box"><Sparkles size={15} /><span>{summary}</span></div>
             ) : (
-              <button disabled={summarizing || stats.total_messages === 0} onClick={summarize}>
+              <button className="ai-action subtle" disabled={summarizing || stats.total_messages === 0} onClick={summarize}>
                 <Sparkles size={14} /> {summarizing ? "Analysing…" : "AI performance summary"}
               </button>
             )}

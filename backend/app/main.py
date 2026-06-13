@@ -113,13 +113,29 @@ def dashboard():
             c["buyers"] += 1
             if n >= 2:
                 c["repeat_buyers"] += 1
+        # Best campaign per category, by attributed revenue. Closed-loop:
+        # a converted order carries both its campaign and the buyer's top
+        # category, so we can say which message drove each category's sales.
+        attr_rows = db.execute(
+            select(Order.category, Campaign.name, func.sum(Order.amount))
+            .join(Campaign, Campaign.id == Order.campaign_id)
+            .where(Order.category != "")
+            .group_by(Order.category, Campaign.id, Campaign.name)).all()
+        best_by_cat: dict = {}
+        for category, camp_name, rev in attr_rows:
+            cur = best_by_cat.get(category)
+            if cur is None or rev > cur["revenue"]:
+                best_by_cat[category] = {"name": camp_name,
+                                         "revenue": round(rev, 2)}
+
         categories = sorted(
             ({"name": k,
               "orders": v["orders"],
               "revenue": round(v["revenue"], 2),
               "buyers": v["buyers"],
               "repeat_rate": round(v["repeat_buyers"] / v["buyers"], 4)
-              if v["buyers"] else 0}
+              if v["buyers"] else 0,
+              "best_campaign": best_by_cat.get(k)}
              for k, v in cats.items()),
             key=lambda c: c["revenue"], reverse=True)
 

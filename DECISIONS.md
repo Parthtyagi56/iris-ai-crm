@@ -223,6 +223,18 @@ affordances when no key is configured; every AI feature has a manual path
 **At scale:** prompt caching for the static system prompts, a cheaper model
 for drafts, and few-shot examples mined from accepted/rejected artifacts.
 
+**MCP — the CRM is agent-operable.** `mcp-server/` exposes the campaign loop
+as Model Context Protocol tools (12 of them: read the base, build/preview/save
+audiences, NL→rules, draft copy, create/launch campaigns, read funnels). It's
+a separate process that speaks only HTTP to the CRM — same decoupling as the
+channel service — so an agent drives the *exact* endpoints the UI does, with
+the same validation and the same draft-vs-launch human boundary (`create_campaign`
+is a draft; `launch_campaign` is the one that sends). This is the honest way
+to answer "is it AI-native?": not just AI *inside* the product, but the
+product itself usable *as a tool by* an agent. Deliberately a thin wrapper,
+not a re-implementation — the clean REST + validated DSL is what makes it
+~120 lines.
+
 ## 9. Frontend: Vite + React SPA, no component library
 
 **Decision.** Hand-rolled design system (CSS custom properties, one

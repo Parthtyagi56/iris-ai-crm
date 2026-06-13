@@ -7,15 +7,24 @@ import EmptyState from "../components/EmptyState.jsx";
 
 const LIMIT = 25;
 
-// Presentation-layer tier; mirrors the dashboard health thresholds.
-// Real segmentation lives in the rule DSL — this is a glanceable label.
+// Presentation-layer RFM-style tier; mirrors the dashboard health
+// thresholds. Real segmentation lives in the rule DSL — this is a
+// glanceable label so a marketer can read the base at a row's glance.
 function tier(c) {
-  const days = c.last_order_at
-    ? (Date.now() - new Date(c.last_order_at + "Z").getTime()) / 86400000
+  const now = Date.now();
+  const recency = c.last_order_at
+    ? (now - new Date(c.last_order_at + "Z").getTime()) / 86400000
     : Infinity;
-  if (days > 120) return ["lapsed-tier", "Lapsed"];
-  if (c.total_spend >= 15000) return ["vip", "VIP"];
-  if (days > 45) return ["atrisk", "At risk"];
+  const joinedDays = c.created_at
+    ? (now - new Date(c.created_at + "Z").getTime()) / 86400000
+    : Infinity;
+  if (recency > 120) return ["lapsed-tier", "Lapsed"];
+  if (recency > 45) return ["atrisk", "At risk"];
+  // active (ordered within 45 days) — split by value and loyalty
+  if (c.total_spend >= 15000) return ["champion", "Champion"];
+  if (c.order_count >= 4) return ["loyal", "Loyal"];
+  if (joinedDays <= 30 && c.order_count <= 1) return ["new-tier", "New"];
+  if (c.order_count <= 2) return ["promising", "Promising"];
   return ["active-tier", "Active"];
 }
 

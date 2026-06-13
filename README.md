@@ -91,11 +91,22 @@ backend/
   tests/                    12 tests: state machine + DSL semantics
 channel-service/
   app/main.py               the simulator (no shared code with the CRM)
+mcp-server/
+  server.py                 MCP tools wrapping the CRM (agent-operable)
 frontend/
   src/
-    pages/                  dashboard · customers · audiences · campaigns
+    pages/                  dashboard · customers · audiences · campaigns · copilot
     components/RuleEditor   recursive editor for the segment rule DSL
 ```
+
+## Agent-operable (MCP)
+
+`mcp-server/` exposes the campaign loop as [Model Context Protocol](https://modelcontextprotocol.io)
+tools, so Claude Desktop (or any MCP client) can run marketing end to end by
+conversation — build an audience, draft copy, launch, read the funnel. It
+speaks only HTTP to the CRM (no shared code, like the channel service), and a
+campaign launched by an agent goes through the same send → receipt → stats
+loop. See [mcp-server/README.md](mcp-server/README.md).
 
 ## Running locally
 

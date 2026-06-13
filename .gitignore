@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .venv/
+mcp-server/.venv/
 .env
 crm.db
 backend/uploads/
@@ -8,3 +9,5 @@ backend/uploads/
 .pytest_cache/
 node_modules/
 dist/
+
+COMMIT_MSG.tmp

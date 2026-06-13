@@ -8,6 +8,29 @@ import { SkeletonRows } from "../components/Skeleton.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import RuleEditor, { defaultGroup, humanizeRules } from "../components/RuleEditor.jsx";
 
+const and = (...conditions) => ({ op: "and", conditions });
+// Prebuilt audiences spanning the RFM spectrum — value, loyalty, recency,
+// lifecycle, and geography — so the marketer starts from more than a blank rule.
+const AUDIENCE_TEMPLATES = [
+  { label: "VIP spenders", description: "Lifetime spend ≥ ₹15,000",
+    rules: and({ field: "total_spend", cmp: ">=", value: 15000 }) },
+  { label: "Loyal repeat buyers", description: "4 or more orders",
+    rules: and({ field: "order_count", cmp: ">=", value: 4 }) },
+  { label: "High AOV", description: "Average order value ≥ ₹3,000",
+    rules: and({ field: "avg_order_value", cmp: ">=", value: 3000 }) },
+  { label: "New customers", description: "Joined in the last 30 days",
+    rules: and({ field: "days_since_joined", cmp: "<=", value: 30 }) },
+  { label: "Lapsing (60d)", description: "No order in 60+ days",
+    rules: and({ field: "days_since_last_order", cmp: ">", value: 60 }) },
+  { label: "Dormant (120d)", description: "No order in 120+ days — win back",
+    rules: and({ field: "days_since_last_order", cmp: ">", value: 120 }) },
+  { label: "Win-back high value", description: "High spenders gone quiet 60+ days",
+    rules: and({ field: "total_spend", cmp: ">=", value: 10000 },
+               { field: "days_since_last_order", cmp: ">", value: 60 }) },
+  { label: "Metro shoppers", description: "Mumbai, Delhi or Bengaluru",
+    rules: and({ field: "city", cmp: "in", value: ["Mumbai", "Delhi", "Bengaluru"] }) },
+];
+
 export default function Segments({ aiEnabled }) {
   usePageTitle("Audiences");
   const toast = useToast();
@@ -66,6 +89,14 @@ export default function Segments({ aiEnabled }) {
     setPreview(null);
   };
 
+  // Prebuilt RFM-style audiences — one click prefills the rules, the live
+  // preview then shows who matches before saving.
+  const applyTemplate = (t) => {
+    setDraft({ name: t.label, description: t.description,
+               rules: t.rules, created_by: "user" });
+    setPreview(null);
+  };
+
   const save = async () => {
     setSaving(true);
     try {
@@ -102,7 +133,7 @@ export default function Segments({ aiEnabled }) {
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && prompt.trim() && !generating && generate()}
             />
-            <button className="primary shrink" disabled={!prompt.trim() || generating} onClick={generate}>
+            <button className="ai-action shrink" disabled={!prompt.trim() || generating} onClick={generate}>
               <Sparkles size={14} /> {generating ? "Thinking…" : "Generate with AI"}
             </button>
             <button className="shrink ghost" onClick={startManual}>Build manually</button>
@@ -113,6 +144,16 @@ export default function Segments({ aiEnabled }) {
             <button className="primary shrink" onClick={startManual}>Build manually</button>
           </div>
         )}
+
+        <div className="templates">
+          <span className="templates-label">Quick audiences</span>
+          {AUDIENCE_TEMPLATES.map((t) => (
+            <button key={t.label} className="template-chip" title={t.description}
+                    onClick={() => applyTemplate(t)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
 
         {error && <div className="error-banner">{error}</div>}
 

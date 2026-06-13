@@ -189,7 +189,7 @@ export default function CampaignNew({ aiEnabled }) {
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
               />
-              <button className="shrink" disabled={drafting} onClick={draftWithAI}>
+              <button className="ai-action shrink" disabled={drafting} onClick={draftWithAI}>
                 <Sparkles size={14} /> {drafting ? "Drafting…" : "Draft with AI"}
               </button>
             </div>

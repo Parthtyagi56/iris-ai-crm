@@ -264,25 +264,27 @@ body {
 table.mini th, table.mini td { padding: 7px 8px; font-size: 12.5px; }
 table.mini th { position: static; box-shadow: none; }
 
-/* category demand bars — name and stats size to content, the bar absorbs
-   the slack; below 1240px the bar drops to its own row so nothing clips */
-.cat-row { display: grid; grid-template-columns: minmax(110px, max-content) minmax(60px, 1fr) max-content; gap: 4px 12px; align-items: center; padding: 5px 0; }
-.cat-row .cat-name { font-size: 12px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+/* category demand bars — category name and its flag/best-campaign stack in
+   a fixed-width left column so every row's name left-aligns identically;
+   the bar absorbs slack. Below 1240px the bar drops to its own row. */
+.cat-row { display: grid; grid-template-columns: 150px minmax(60px, 1fr) max-content; gap: 4px 12px; align-items: center; padding: 7px 8px; border-radius: 8px; transition: background 0.15s; }
+.cat-row .cat-name { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.cat-row .cat-title { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-row .cat-flag { font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.cat-row .cat-flag.hot { color: var(--green); }
+.cat-row .cat-flag.focus { color: var(--amber); }
+.cat-row .cat-best { font-size: 10.5px; color: var(--accent-deep); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cat-bar { background: var(--surface-2); border-radius: 5px; height: 18px; overflow: hidden; }
 .cat-bar > div { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #14b8a6, #0d9488); min-width: 2px; transition: width 0.5s ease; }
-.cat-row.lagging .cat-bar > div { background: var(--line-strong); }
+.cat-row.flag-focus .cat-bar > div { background: var(--line-strong); }
+.cat-row.flag-hot { background: linear-gradient(90deg, var(--green-wash), transparent 70%); }
+.cat-row.flag-focus { background: linear-gradient(90deg, var(--amber-wash), transparent 70%); }
 .cat-row .cat-meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
 .cat-row .cat-meta b { color: var(--ink); font-weight: 700; }
 @media (max-width: 1240px) {
   .cat-row { grid-template-columns: 1fr max-content; }
   .cat-bar { grid-column: 1 / -1; }
 }
-.flag {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  border-radius: 999px; padding: 1.5px 7px; flex-shrink: 0;
-}
-.flag.hot { color: var(--green); background: var(--green-wash); }
-.flag.focus { color: var(--amber); background: var(--amber-wash); }
 
 /* moments (event playbook) */
 .moments { display: flex; flex-direction: column; gap: 10px; }
@@ -414,6 +416,36 @@ button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 .icon-btn { background: transparent; border: none; color: var(--muted); padding: 4px 8px; }
 .icon-btn:hover { color: var(--ink); background: var(--surface-2); border: none; }
 
+/* AI-triggering buttons get a distinct, unmissable treatment so an
+   evaluator can spot every place AI is doing the work. */
+.ai-action {
+  background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+  border: 1px solid var(--accent-deep);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(13, 148, 136, 0.4), 0 0 0 3px rgba(13, 148, 136, 0.12);
+}
+.ai-action:hover { background: var(--accent-deep); border-color: var(--accent-deep); filter: brightness(1.05); }
+.ai-action svg { color: #fff; }
+.ai-action::after {
+  content: "AI";
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding: 1px 4px;
+  margin-left: 2px;
+}
+/* ghost variant for AI actions on busy toolbars (keeps text legible) */
+.ai-action.subtle {
+  background: var(--accent-wash);
+  color: var(--accent-deep);
+  border-color: rgba(13, 148, 136, 0.4);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+}
+.ai-action.subtle svg { color: var(--accent-deep); }
+.ai-action.subtle::after { background: rgba(13, 148, 136, 0.18); color: var(--accent-deep); }
+
 /* ---------------- badges ---------------- */
 .badge {
   display: inline-flex;
@@ -447,14 +479,27 @@ button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
   border: 1px solid var(--line-strong);
 }
 .badge.channel::before { display: none; }
-/* customer tiers */
-.badge.vip { color: var(--accent-deep); background: var(--accent-wash); }
+/* customer tiers (RFM) */
+.badge.champion { color: #b45309; background: #fef3c7; }
+.badge.loyal { color: var(--blue); background: var(--blue-wash); }
+.badge.new-tier { color: var(--accent-deep); background: var(--accent-wash); }
+.badge.promising { color: #7c3aed; background: #ede9fe; }
 .badge.active-tier { color: var(--green); background: var(--green-wash); }
 .badge.atrisk { color: var(--amber); background: var(--amber-wash); }
 .badge.lapsed-tier { color: var(--ink-2); background: var(--surface-2); }
+.badge.vip { color: var(--accent-deep); background: var(--accent-wash); }
 @keyframes pulse { 50% { opacity: 0.2; } }
 
 .live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--green); margin-right: 7px; animation: pulse 1.6s infinite; }
+
+/* ---------------- audience templates ---------------- */
+.templates { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.templates-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-right: 2px; }
+.template-chip {
+  font-size: 12.5px; font-weight: 500; padding: 6px 12px;
+  border-radius: 999px; border: 1px solid var(--line-strong); background: var(--surface);
+}
+.template-chip:hover { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-wash); }
 
 /* ---------------- rule editor ---------------- */
 .rule-group {

@@ -238,17 +238,25 @@ export default function Dashboard() {
             {stats.categories?.length ? (() => {
               const maxRev = stats.categories[0].revenue || 1;
               const lowest = stats.categories[stats.categories.length - 1].name;
-              return stats.categories.map((c, i) => (
-                <div key={c.name} className={`cat-row ${c.name === lowest ? "lagging" : ""}`}>
-                  <span className="cat-name">
-                    {c.name}
-                    {i === 0 && <span className="flag hot">double down</span>}
-                    {c.name === lowest && <span className="flag focus">focus</span>}
-                  </span>
-                  <div className="cat-bar"><div style={{ width: `${(c.revenue / maxRev) * 100}%` }} /></div>
-                  <span className="cat-meta"><b>{inr(c.revenue)}</b> · {c.orders} orders · {pct(c.repeat_rate)} repeat</span>
-                </div>
-              ));
+              return stats.categories.map((c, i) => {
+                const flag = i === 0 ? "hot" : c.name === lowest ? "focus" : null;
+                return (
+                  <div key={c.name} className={`cat-row ${flag ? `flag-${flag}` : ""}`}>
+                    <div className="cat-name">
+                      <span className="cat-title">{c.name}</span>
+                      {flag === "hot" && <span className="cat-flag hot">▲ Double down</span>}
+                      {flag === "focus" && <span className="cat-flag focus">◆ Focus</span>}
+                      {c.best_campaign && (
+                        <span className="cat-best" title={`Best campaign: ${c.best_campaign.name}`}>
+                          ★ {c.best_campaign.name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="cat-bar"><div style={{ width: `${(c.revenue / maxRev) * 100}%` }} /></div>
+                    <span className="cat-meta"><b>{inr(c.revenue)}</b> · {c.orders} orders · {pct(c.repeat_rate)} repeat</span>
+                  </div>
+                );
+              });
             })() : (
               <div className="sub">No categorised orders yet — include a category column when importing.</div>
             )}
