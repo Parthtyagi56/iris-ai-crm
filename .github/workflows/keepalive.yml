@@ -1,0 +1,21 @@
+name: Keep Render services warm
+
+# Free Render web services sleep after ~15 min idle and take ~50s to wake.
+# This pings both health endpoints every 10 min so the demo stays responsive.
+# Note: GitHub disables scheduled workflows after 60 days of repo inactivity,
+# and cron timing can drift a few minutes under load. For a guaranteed warm
+# service, an external monitor (UptimeRobot / cron-job.org) is more reliable.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping CRM and channel health endpoints
+        run: |
+          curl -fsS --max-time 90 https://iris-crm.onrender.com/health || true
+          curl -fsS --max-time 90 https://iris-channel.onrender.com/health || true
