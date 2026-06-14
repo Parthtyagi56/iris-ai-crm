@@ -23,6 +23,8 @@ very first request after a long idle can still take ~50s to wake.
 
 ## Architecture
 
+![Iris architecture](docs/architecture.svg)
+
 ```
 ┌─────────────┐  REST   ┌──────────────────────┐  POST /send   ┌──────────────────┐
 │  React SPA  │ ──────► │   CRM API (FastAPI)  │ ────────────► │ Channel Simulator│

@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 760" font-family="Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">Iris architecture</title>
+  <desc id="d">A React SPA calls the CRM API, which dispatches to a separate channel simulator that asynchronously posts signed receipts back; the CRM persists to Postgres, calls an AI provider, and is also operable via an MCP server.</desc>
+
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-end">
+      <path d="M0,0 L10,5 L0,10 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-end">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0f766e"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1180" height="760" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="40" y="50" font-size="28" font-weight="700" fill="#0f172a">Iris — architecture</text>
+  <text x="40" y="78" font-size="15" fill="#64748b">Two independent services, HTTP only — modelled like a real CRM and a real channel provider.</text>
+
+  <!-- ===== Row 1: SPA -> CRM -> Channel ===== -->
+
+  <!-- React SPA -->
+  <rect x="40" y="150" width="230" height="96" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="155" y="186" text-anchor="middle" font-size="17" font-weight="700" fill="#1d4ed8">React SPA</text>
+  <text x="155" y="210" text-anchor="middle" font-size="12.5" fill="#475569">dashboard · audiences · copilot</text>
+  <text x="155" y="230" text-anchor="middle" font-size="12" fill="#94a3b8">Vite · Vercel</text>
+
+  <!-- CRM API -->
+  <rect x="465" y="120" width="300" height="180" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="2"/>
+  <text x="615" y="152" text-anchor="middle" font-size="18" font-weight="700" fill="#0f766e">CRM API</text>
+  <text x="615" y="174" text-anchor="middle" font-size="12" fill="#94a3b8">FastAPI · Render (Singapore)</text>
+  <line x1="490" y1="186" x2="740" y2="186" stroke="#a7f3d0" stroke-width="1"/>
+  <text x="615" y="208" text-anchor="middle" font-size="12.5" fill="#334155">ingest · segments · campaigns</text>
+  <text x="615" y="228" text-anchor="middle" font-size="12.5" fill="#334155">receipts · AI endpoints</text>
+  <text x="615" y="256" text-anchor="middle" font-size="12" fill="#0f766e" font-weight="600">events = source of truth</text>
+  <text x="615" y="274" text-anchor="middle" font-size="12" fill="#0f766e" font-weight="600">status = projection · forward-only · idempotent</text>
+
+  <!-- Channel simulator -->
+  <rect x="890" y="150" width="250" height="120" rx="12" fill="#fff7ed" stroke="#b45309" stroke-width="1.5"/>
+  <text x="1015" y="184" text-anchor="middle" font-size="17" font-weight="700" fill="#b45309">Channel simulator</text>
+  <text x="1015" y="206" text-anchor="middle" font-size="12.5" fill="#475569">stubs WhatsApp · SMS</text>
+  <text x="1015" y="224" text-anchor="middle" font-size="12.5" fill="#475569">Email · RCS</text>
+  <text x="1015" y="248" text-anchor="middle" font-size="12" fill="#94a3b8">FastAPI · Render · no shared code</text>
+
+  <!-- SPA -> CRM -->
+  <line x1="270" y1="198" x2="463" y2="198" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="366" y="190" text-anchor="middle" font-size="12.5" fill="#475569">REST / JSON</text>
+
+  <!-- CRM -> Channel (send) -->
+  <line x1="767" y1="172" x2="888" y2="180" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="828" y="158" text-anchor="middle" font-size="12" fill="#475569">POST /send</text>
+  <text x="828" y="146" text-anchor="middle" font-size="11" fill="#94a3b8">batched · retried</text>
+
+  <!-- Channel -> CRM (receipts) -->
+  <line x1="888" y1="238" x2="767" y2="246" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="828" y="262" text-anchor="middle" font-size="12" fill="#475569">async callbacks</text>
+  <text x="828" y="278" text-anchor="middle" font-size="11" fill="#94a3b8">HMAC-signed /api/receipts</text>
+  <text x="828" y="296" text-anchor="middle" font-size="11" fill="#b45309">retries · duplicates · out-of-order · ~8% fail</text>
+
+  <!-- ===== Row 2: AI, DB, MCP ===== -->
+
+  <!-- AI -->
+  <rect x="120" y="380" width="250" height="100" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="245" y="414" text-anchor="middle" font-size="17" font-weight="700" fill="#15803d">AI provider</text>
+  <text x="245" y="437" text-anchor="middle" font-size="12.5" fill="#475569">NL→rules · drafts · insights</text>
+  <text x="245" y="457" text-anchor="middle" font-size="12" fill="#94a3b8">Groq / any OpenAI-compatible</text>
+
+  <!-- DB -->
+  <rect x="490" y="380" width="250" height="100" rx="12" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="615" y="414" text-anchor="middle" font-size="17" font-weight="700" fill="#6d28d9">Postgres</text>
+  <text x="615" y="437" text-anchor="middle" font-size="12.5" fill="#475569">customers · orders · campaigns</text>
+  <text x="615" y="457" text-anchor="middle" font-size="12.5" fill="#475569">messages · events ledger</text>
+  <text x="615" y="474" text-anchor="middle" font-size="11.5" fill="#94a3b8">Neon (Singapore)</text>
+
+  <!-- MCP -->
+  <rect x="860" y="380" width="250" height="100" rx="12" fill="#f8fafc" stroke="#475569" stroke-width="1.5"/>
+  <text x="985" y="414" text-anchor="middle" font-size="17" font-weight="700" fill="#334155">MCP server</text>
+  <text x="985" y="437" text-anchor="middle" font-size="12.5" fill="#475569">agent runs the full loop</text>
+  <text x="985" y="457" text-anchor="middle" font-size="12" fill="#94a3b8">same REST APIs as the UI</text>
+
+  <!-- CRM <-> AI -->
+  <line x1="500" y1="295" x2="300" y2="378" stroke="#64748b" stroke-width="1.6" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="372" y="350" text-anchor="middle" font-size="11.5" fill="#475569">validated JSON</text>
+
+  <!-- CRM -> DB -->
+  <line x1="615" y1="302" x2="615" y2="378" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="625" y="345" font-size="11.5" fill="#475569">SQLAlchemy</text>
+
+  <!-- MCP -> CRM -->
+  <line x1="930" y1="378" x2="730" y2="298" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <text x="868" y="350" text-anchor="middle" font-size="11.5" fill="#475569">agent-operable</text>
+
+  <!-- ===== Delivery loop strip ===== -->
+  <rect x="120" y="560" width="990" height="120" rx="14" fill="#ecfdf5" stroke="#0f766e" stroke-width="1.5"/>
+  <text x="140" y="592" font-size="15" font-weight="700" fill="#0f766e">The delivery loop</text>
+  <text x="140" y="614" font-size="12.5" fill="#94a3b8">a status only ever moves forward; a conversion writes an attributed order — closing message → revenue</text>
+
+  <!-- funnel chips -->
+  <g font-size="12.5" font-weight="600">
+    <g>
+      <rect x="140" y="630" width="96" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="188" y="650" text-anchor="middle" fill="#475569">queued</text>
+    </g>
+    <g>
+      <rect x="252" y="630" width="84" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="294" y="650" text-anchor="middle" fill="#475569">sent</text>
+    </g>
+    <g>
+      <rect x="352" y="630" width="104" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="404" y="650" text-anchor="middle" fill="#475569">delivered</text>
+    </g>
+    <g>
+      <rect x="472" y="630" width="92" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="518" y="650" text-anchor="middle" fill="#475569">opened</text>
+    </g>
+    <g>
+      <rect x="580" y="630" width="78" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="619" y="650" text-anchor="middle" fill="#475569">read</text>
+    </g>
+    <g>
+      <rect x="674" y="630" width="92" height="30" rx="15" fill="#ffffff" stroke="#cbd5e1"/>
+      <text x="720" y="650" text-anchor="middle" fill="#475569">clicked</text>
+    </g>
+    <g>
+      <rect x="782" y="630" width="110" height="30" rx="15" fill="#ecfccb" stroke="#65a30d"/>
+      <text x="837" y="650" text-anchor="middle" fill="#3f6212">converted</text>
+    </g>
+    <g>
+      <rect x="908" y="630" width="184" height="30" rx="15" fill="#0f766e"/>
+      <text x="1000" y="650" text-anchor="middle" fill="#ffffff">→ attributed order</text>
+    </g>
+  </g>
+
+  <!-- chevrons between chips -->
+  <g fill="#cbd5e1" font-size="14">
+    <text x="242" y="650">›</text>
+    <text x="342" y="650">›</text>
+    <text x="462" y="650">›</text>
+    <text x="570" y="650">›</text>
+    <text x="664" y="650">›</text>
+    <text x="772" y="650">›</text>
+    <text x="898" y="650">›</text>
+  </g>
+</svg>
