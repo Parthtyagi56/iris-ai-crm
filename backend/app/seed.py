@@ -1,4 +1,4 @@
-"""Seed realistic data for "Aurelia", a fictional D2C fashion brand.
+"""Seed realistic data for Iris, a fictional D2C fashion brand.
 
 Deliberately shaped (not uniform-random) so segments are meaningful:
   ~15% VIPs        - frequent, high-value, recent

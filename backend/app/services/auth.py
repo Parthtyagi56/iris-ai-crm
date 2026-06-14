@@ -18,8 +18,8 @@ from ..models import User
 
 _ITERATIONS = 120_000
 
-DEFAULT_EMAIL = "admin@aurelia.shop"
-DEFAULT_PASSWORD = "aurelia123"  # demo workspace; shown on the sign-in card
+DEFAULT_EMAIL = "admin@iris.shop"
+DEFAULT_PASSWORD = "iris123"  # demo workspace; shown on the sign-in card
 
 
 def hash_password(password: str) -> str:
@@ -76,8 +76,8 @@ def ensure_default_user() -> None:
         if db.execute(select(User.id).limit(1)).first():
             return
         db.add(User(
-            name="Aurelia Admin",
-            username="aurelia-admin",
+            name="Iris Admin",
+            username="iris-admin",
             email=DEFAULT_EMAIL,
             role="Brand admin",
             city="Mumbai",

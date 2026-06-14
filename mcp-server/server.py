@@ -1,4 +1,4 @@
-"""Aurelia CRM — MCP server.
+"""Iris CRM — MCP server.
 
 Exposes the CRM as a set of Model Context Protocol tools so an AI agent
 (Claude Desktop, or any MCP client) can run the full marketing loop by
@@ -21,7 +21,7 @@ from mcp.server.fastmcp import FastMCP
 CRM = os.environ.get("CRM_BASE_URL", "http://localhost:8000").rstrip("/")
 TOKEN = os.environ.get("CRM_TOKEN", "")  # only needed for profile endpoints
 
-mcp = FastMCP("aurelia-crm")
+mcp = FastMCP("iris-crm")
 
 
 def _headers() -> dict:

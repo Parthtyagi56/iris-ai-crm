@@ -12,7 +12,7 @@ without explicit human approval.
 | | |
 |---|---|
 | **App** | https://xeno-mini-crm-one-ruddy.vercel.app |
-| **Login** | `admin@aurelia.shop` · `aurelia123` |
+| **Login** | `admin@iris.shop` · `iris123` |
 | **CRM API** | https://iris-crm.onrender.com ([`/docs`](https://iris-crm.onrender.com/docs)) |
 | **Channel** | https://iris-channel.onrender.com |
 

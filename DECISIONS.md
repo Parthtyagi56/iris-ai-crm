@@ -1,4 +1,4 @@
-# Decision log — Aurelia Mini CRM
+# Decision log — Iris Mini CRM
 
 Every significant decision in this project, the alternatives considered, and
 the trade-offs. Written to be defensible in a live code review: "I'd do X at

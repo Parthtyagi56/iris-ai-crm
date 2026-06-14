@@ -1,4 +1,4 @@
-# Aurelia CRM — MCP server
+# Iris CRM — MCP server
 
 Makes the CRM **agent-operable**. Exposes the campaign loop as
 [Model Context Protocol](https://modelcontextprotocol.io) tools, so Claude
@@ -45,7 +45,7 @@ Add to `claude_desktop_config.json`
 ```json
 {
   "mcpServers": {
-    "aurelia-crm": {
+    "iris-crm": {
       "command": "C:\\Users\\HP\\xeno\\mcp-server\\.venv\\Scripts\\python.exe",
       "args": ["C:\\Users\\HP\\xeno\\mcp-server\\server.py"],
       "env": { "CRM_BASE_URL": "http://localhost:8000" }
@@ -54,5 +54,5 @@ Add to `claude_desktop_config.json`
 }
 ```
 
-Restart Claude Desktop; the Aurelia tools appear in the tool menu. Make sure
+Restart Claude Desktop; the Iris tools appear in the tool menu. Make sure
 the CRM (`:8000`) and channel service (`:8001`) are running first.

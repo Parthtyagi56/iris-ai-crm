@@ -48,7 +48,7 @@ function Field({ label, error, children }) {
 
 function SignIn({ onSignedIn }) {
   const toast = useToast();
-  const [email, setEmail] = useState("admin@aurelia.shop");
+  const [email, setEmail] = useState("admin@iris.shop");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +82,7 @@ function SignIn({ onSignedIn }) {
         {busy ? "Signing in…" : "Sign in"}
       </button>
       <p className="hint" style={{ marginBottom: 0 }}>
-        Demo workspace: <code className="rules">admin@aurelia.shop</code> / <code className="rules">aurelia123</code>
+        Demo workspace: <code className="rules">admin@iris.shop</code> / <code className="rules">iris123</code>
       </p>
     </form>
   );
