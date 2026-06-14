@@ -212,7 +212,7 @@ export default function Dashboard({ aiEnabled }) {
     ? new Date(p.month + "-01").toLocaleDateString("en-IN", { month: "short", year: "2-digit" })
     : new Date(p.week + "T00:00:00").toLocaleDateString("en-IN", { day: "numeric", month: "short" });
   const chartData = raw.map((p) => ({ label: fmtPeriod(p), revenue: p.revenue }));
-  const rangeLabel = { weekly: "last 12 weeks", monthly: "last 12 months" }[granularity];
+  const rangeLabel = { weekly: "last 12 weeks", monthly: "all time" }[granularity];
   // Daily revenue (30-day average) shown as a number inside the customer card.
   const dailyAvg = stats?.daily_revenue?.length
     ? stats.daily_revenue.reduce((a, d) => a + d.revenue, 0) / stats.daily_revenue.length

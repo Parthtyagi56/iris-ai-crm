@@ -78,11 +78,11 @@ def dashboard():
             for week, total in sorted(buckets.items())
         ]
 
-        # Last ~12 months of revenue, bucketed by calendar month.
-        month_cutoff = utcnow() - timedelta(days=370)
+        # Full monthly revenue history, bucketed by calendar month. Covers
+        # every order so the bars sum exactly to the headline total revenue —
+        # the chart validates the number rather than showing a partial window.
         m_recent = db.execute(
-            select(Order.created_at, Order.amount)
-            .where(Order.created_at >= month_cutoff)).all()
+            select(Order.created_at, Order.amount)).all()
         m_buckets: dict = {}
         for created_at, amount in m_recent:
             key = (created_at.year, created_at.month)

@@ -71,7 +71,7 @@ def run():
             _, orders_range, amount_range, recency_range = pick_profile()
             preferred_category = random.choices(
                 CATEGORIES, weights=CATEGORY_WEIGHTS)[0]
-            joined = now - timedelta(days=random.randint(30, 540))
+            joined = now - timedelta(days=random.randint(30, 365))
             customer = Customer(
                 name=fake.name(),
                 email=email,
