@@ -1130,3 +1130,59 @@ dl.kv dd { margin: 0; font-size: 13.5px; }
   .page-head h1 { font-size: 21px; }
   .funnel-row { grid-template-columns: 78px minmax(40px, 1fr) max-content; }
 }
+
+/* ---------------------------------------------------------------- boot gate */
+/* Calm splash shown until the (free-tier) backend wakes. */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(1200px 600px at 50% -10%, var(--accent-wash), transparent 60%),
+    var(--bg);
+}
+.boot-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  padding: 32px;
+  max-width: 380px;
+}
+.boot-mark {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent-deep);
+}
+.boot-spinner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-wash);
+  border-top-color: var(--accent);
+  animation: boot-spin 0.8s linear infinite;
+}
+@keyframes boot-spin { to { transform: rotate(360deg); } }
+.boot-sub { font-size: 15px; font-weight: 600; color: var(--text, #1f2937); }
+.boot-hint {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #94a3b8;
+  max-width: 320px;
+}
+.boot-retry {
+  margin-top: 4px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+.boot-retry:hover { background: var(--accent-deep); }

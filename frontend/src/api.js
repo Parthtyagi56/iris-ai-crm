@@ -40,10 +40,14 @@ async function request(path, options = {}) {
   if (model) headers["X-AI-Model"] = model;
 
   let res;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 95000); // free-tier cold starts
   try {
-    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+    res = await fetch(`${API_URL}${path}`, { ...options, headers, signal: ctrl.signal });
   } catch {
     throw new Error(`Cannot reach the CRM API at ${API_URL}. Is the backend running?`);
+  } finally {
+    clearTimeout(timer);
   }
   if (!res.ok) {
     let detail = "";
@@ -57,6 +61,28 @@ async function request(path, options = {}) {
   }
   if (res.status === 204 || res.headers.get("content-length") === "0") return null;
   return res.json();
+}
+
+// Poll /health until the (possibly sleeping) free-tier backend wakes up. Used
+// by the boot splash so a cold start never shows a broken first screen.
+export async function wakeBackend({ onAttempt, timeoutMs = 120000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    attempt += 1;
+    onAttempt?.(attempt);
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 90000);
+      const res = await fetch(`${API_URL}/health`, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (res.ok) return true;
+    } catch {
+      /* still waking */
+    }
+    await new Promise((r) => setTimeout(r, 2500));
+  }
+  return false;
 }
 
 export const api = {
