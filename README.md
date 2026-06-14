@@ -23,19 +23,38 @@ very first request after a long idle can still take ~50s to wake.
 
 ## Architecture
 
-![Iris architecture](docs/architecture.svg)
+```mermaid
+flowchart LR
+  classDef client  fill:#eff6ff,stroke:#2563eb,color:#1d4ed8,stroke-width:1.5px;
+  classDef crm     fill:#ecfdf5,stroke:#0f766e,color:#0f766e,stroke-width:2px;
+  classDef channel fill:#fff7ed,stroke:#b45309,color:#b45309,stroke-width:1.5px;
+  classDef data    fill:#f5f3ff,stroke:#7c3aed,color:#6d28d9,stroke-width:1.5px;
+  classDef ai      fill:#f0fdf4,stroke:#16a34a,color:#15803d,stroke-width:1.5px;
+  classDef agent   fill:#f8fafc,stroke:#475569,color:#334155,stroke-width:1.5px;
 
-```
-┌─────────────┐  REST   ┌──────────────────────┐  POST /send   ┌──────────────────┐
-│  React SPA  │ ──────► │   CRM API (FastAPI)  │ ────────────► │ Channel Simulator│
-│  (Vercel)   │         │  customers · orders  │   batches,    │    (FastAPI)     │
-└─────────────┘         │  segments · campaigns│   retries     │  async lifecycle │
-                        │  messages · events   │               │  simulation      │
-                        │  AI endpoints        │ ◄──────────── │  per message     │
-                        └──────────┬───────────┘  POST         └──────────────────┘
-                                   │              /api/receipts
-                              Postgres/SQLite     (HMAC-signed, retried,
-                                                   duplicated, out-of-order)
+  SPA["React SPA<br/>dashboard · audiences · copilot<br/>Vite · Vercel"]:::client
+
+  subgraph CRM_SVC["CRM service — FastAPI · Render (Singapore)"]
+    CRM["CRM API<br/>ingest · segments · campaigns · receipts · AI<br/>—<br/>events = source of truth<br/>status = projection · forward-only · idempotent"]:::crm
+  end
+
+  subgraph CH_SVC["Channel service — FastAPI · Render · no shared code"]
+    CH["Channel simulator<br/>WhatsApp · SMS · Email · RCS"]:::channel
+  end
+
+  DB[("Postgres<br/>Neon (Singapore)")]:::data
+  AI["AI provider<br/>Groq / any OpenAI-compatible<br/>validated JSON"]:::ai
+  MCP["MCP server<br/>agent-operable"]:::agent
+
+  SPA -- "REST / JSON" --> CRM
+  CRM -- "POST /send<br/>batched · retried" --> CH
+  CH -- "async callbacks · HMAC-signed /api/receipts<br/>retries · duplicates · out-of-order · ~8% fail" --> CRM
+  CRM -- "SQLAlchemy" --> DB
+  CRM <-- "NL→rules · drafts · insights" --> AI
+  MCP -- "same REST APIs as the UI" --> CRM
+
+  style CRM_SVC fill:none,stroke:none
+  style CH_SVC fill:none,stroke:none
 ```
 
 Two genuinely separate services with no shared code — they speak only HTTP,
