@@ -1186,3 +1186,13 @@ dl.kv dd { margin: 0; font-size: 13.5px; }
   cursor: pointer;
 }
 .boot-retry:hover { background: var(--accent-deep); }
+.boot-actions { display: flex; gap: 10px; align-items: center; margin-top: 4px; }
+.boot-link {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.boot-link:hover { color: var(--accent-deep); }
