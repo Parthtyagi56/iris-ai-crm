@@ -21,6 +21,11 @@ Neon, AI via Groq. The services run on free tiers — a [keep-alive
 workflow](.github/workflows/keepalive.yml) pings them every 10 minutes, but the
 very first request after a long idle can still take ~50s to wake.
 
+> **Viewing the demo:** best in **Chrome**. On **Brave**, the privacy Shields can
+> block the cross-origin API call (UI on `vercel.app`, API on `onrender.com`) and
+> leave the app on its loading screen — click the **🦁 lion icon → Shields down
+> for this site**, then reload.
+
 ## Architecture
 
 ```mermaid

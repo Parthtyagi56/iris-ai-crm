@@ -81,8 +81,12 @@ function SignIn({ onSignedIn }) {
       <button className="primary" disabled={busy} style={{ width: "100%" }}>
         {busy ? "Signing in…" : "Sign in"}
       </button>
-      <p className="hint" style={{ marginBottom: 0 }}>
+      <p className="hint" style={{ marginBottom: 4 }}>
         Demo workspace: <code className="rules">admin@iris.shop</code> / <code className="rules">iris123</code>
+      </p>
+      <p className="hint" style={{ marginBottom: 0, fontSize: 11.5 }}>
+        Best viewed in Chrome. On Brave, lower Shields (🦁) for this site if the
+        app stalls on the loading screen.
       </p>
     </form>
   );
