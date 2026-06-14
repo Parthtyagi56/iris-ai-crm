@@ -8,13 +8,9 @@ flowchart LR
 
   SPA["React SPA<br/>dashboard · audiences · copilot<br/>Vite · Vercel"]:::client
 
-  subgraph CRM_SVC["CRM service — FastAPI · Render (Singapore)"]
-    CRM["CRM API<br/>ingest · segments · campaigns · receipts · AI<br/>—<br/>events = source of truth<br/>status = projection · forward-only · idempotent"]:::crm
-  end
+  CRM["CRM API — FastAPI · Render (Singapore)<br/>ingest · segments · campaigns · receipts · AI<br/>—<br/>events = source of truth<br/>status = projection · forward-only · idempotent"]:::crm
 
-  subgraph CH_SVC["Channel service — FastAPI · Render · no shared code"]
-    CH["Channel simulator<br/>WhatsApp · SMS · Email · RCS"]:::channel
-  end
+  CH["Channel simulator — FastAPI · Render<br/>WhatsApp · SMS · Email · RCS<br/>no shared code with the CRM"]:::channel
 
   DB[("Postgres<br/>Neon (Singapore)")]:::data
   AI["AI provider<br/>Groq / any OpenAI-compatible<br/>validated JSON"]:::ai
