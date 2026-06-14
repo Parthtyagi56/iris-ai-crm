@@ -7,6 +7,20 @@ AI answers with *structured, editable artifacts* (segment rules with a live
 audience preview, message variants, channel suggestion). Nothing sends
 without explicit human approval.
 
+## Live demo
+
+| | |
+|---|---|
+| **App** | https://xeno-mini-crm-one-ruddy.vercel.app |
+| **Login** | `admin@aurelia.shop` · `aurelia123` |
+| **CRM API** | https://iris-crm.onrender.com ([`/docs`](https://iris-crm.onrender.com/docs)) |
+| **Channel** | https://iris-channel.onrender.com |
+
+Frontend on Vercel, both services on Render (Singapore region), Postgres on
+Neon, AI via Groq. The services run on free tiers — a [keep-alive
+workflow](.github/workflows/keepalive.yml) pings them every 10 minutes, but the
+very first request after a long idle can still take ~50s to wake.
+
 ## Architecture
 
 ```
