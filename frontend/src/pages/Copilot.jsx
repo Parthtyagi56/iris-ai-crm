@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Send as SendIcon, KeyRound, CheckCircle2, Rocket } from "lucide-react";
+import {
+  Sparkles, Send as SendIcon, KeyRound, CheckCircle2, Rocket,
+  Target, PenLine, Radio,
+} from "lucide-react";
 import { api } from "../api.js";
-import { usePageTitle } from "../App.jsx";
+import { usePageTitle, LyraIcon } from "../App.jsx";
 import { useToast } from "../components/Toast.jsx";
 import EmptyState from "../components/EmptyState.jsx";
 import { humanizeRules } from "../components/RuleEditor.jsx";
@@ -11,6 +14,13 @@ const STARTERS = [
   "Win back lapsed high spenders before Diwali",
   "Reward my Mumbai VIPs with early access to the new collection",
   "Re-engage one-time buyers with a 10% comeback offer",
+  "Bring back customers who haven't bought footwear in 90 days",
+];
+
+const CAPABILITIES = [
+  { Icon: Target, title: "Find the audience", desc: "Plain English → segment rules with a live count" },
+  { Icon: PenLine, title: "Write the copy", desc: "On-brand, personalised message variants" },
+  { Icon: Radio, title: "Pick channel & launch", desc: "Recommends a channel, sends on your approval" },
 ];
 
 function PlanCard({ plan, onApprove, approving }) {
@@ -83,7 +93,7 @@ function PlanCard({ plan, onApprove, approving }) {
 }
 
 export default function Copilot({ aiEnabled }) {
-  usePageTitle("Copilot");
+  usePageTitle("Lyra");
   const toast = useToast();
   const navigate = useNavigate();
   const [msgs, setMsgs] = useState([]);
@@ -148,35 +158,42 @@ export default function Copilot({ aiEnabled }) {
 
   if (!aiEnabled) {
     return (
-      <>
-        <div className="page-head">
-          <div>
-            <h1>Copilot</h1>
-            <p>Describe the campaign in plain language — the copilot proposes audience, channel, and copy. You approve.</p>
-          </div>
+      <div className="muse">
+        <div className="muse-head">
+          <div className="muse-mark"><LyraIcon size={26} strokeWidth={1.7} /></div>
+          <h1>Lyra</h1>
+          <p>Your campaign assistant — describe a goal, Lyra proposes the audience, channel, and copy. You approve.</p>
         </div>
         <EmptyState
           icon={<KeyRound size={20} />}
-          title="Connect a free AI provider to enable the copilot"
+          title="Connect a free AI provider to wake Lyra"
           hint="Grab a free API key from Groq (console.groq.com) or Google AI Studio, then set AI_API_KEY, AI_BASE_URL and AI_MODEL in backend/.env and restart the API. backend/.env.example has copy-paste configs."
         />
-      </>
+      </div>
     );
   }
 
   return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1>Copilot</h1>
-          <p>Describe the goal — the copilot proposes the audience, channel, and message. Nothing sends without your approval.</p>
-        </div>
+    <div className="muse">
+      <div className="muse-head">
+        <div className="muse-mark"><LyraIcon size={26} strokeWidth={1.7} /></div>
+        <h1>Lyra</h1>
+        <p>Describe the goal — Lyra proposes the audience, channel, and message. Nothing sends without your approval.</p>
       </div>
 
       <div className="panel chat-panel" style={{ marginTop: 0 }}>
         <div className="chat-thread">
           {msgs.length === 0 && (
             <div className="starter-wrap">
+              <div className="muse-caps">
+                {CAPABILITIES.map((c) => (
+                  <div key={c.title} className="cap">
+                    <c.Icon size={18} />
+                    <strong>{c.title}</strong>
+                    <span>{c.desc}</span>
+                  </div>
+                ))}
+              </div>
               <p className="muted">Try one of these, or describe your own goal:</p>
               <div className="starter-chips">
                 {STARTERS.map((s) => (
@@ -207,13 +224,13 @@ export default function Copilot({ aiEnabled }) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && send()}
-            aria-label="Message the copilot"
+            aria-label="Message Lyra"
           />
           <button className="primary" disabled={!input.trim() || sending} onClick={() => send()}>
             <SendIcon size={14} /> Send
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

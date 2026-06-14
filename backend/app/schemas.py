@@ -126,3 +126,7 @@ class ChatMessage(BaseModel):
 
 class AIChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+
+
+class AIAskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)

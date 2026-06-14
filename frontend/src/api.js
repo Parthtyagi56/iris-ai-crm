@@ -25,10 +25,19 @@ export function cachedUser() {
   }
 }
 
+export const getModel = () => localStorage.getItem("aurelia_ai_model") || "";
+export function setModel(model) {
+  if (model) localStorage.setItem("aurelia_ai_model", model);
+  else localStorage.removeItem("aurelia_ai_model");
+  window.dispatchEvent(new Event("aurelia:model"));
+}
+
 async function request(path, options = {}) {
   const headers = { ...(options.headers || {}) };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
+  const model = getModel();
+  if (model) headers["X-AI-Model"] = model;
 
   let res;
   try {
@@ -46,6 +55,7 @@ async function request(path, options = {}) {
     }
     throw new Error(detail || `${res.status} ${res.statusText}`);
   }
+  if (res.status === 204 || res.headers.get("content-length") === "0") return null;
   return res.json();
 }
 
@@ -66,6 +76,7 @@ export const api = {
   // multipart upload — the browser sets the boundary header itself
   postForm: (path, formData) =>
     request(path, { method: "POST", body: formData }),
+  del: (path) => request(path, { method: "DELETE" }),
 };
 
 export const inr = (n) =>

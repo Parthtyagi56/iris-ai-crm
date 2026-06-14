@@ -150,17 +150,18 @@ export default function CampaignNew({ aiEnabled }) {
             <select value={channel} onChange={(e) => setChannel(e.target.value)}>
               {CHANNELS.map((c) => (
                 <option key={c} value={c}>
-                  {c}{suggested?.channel === c ? "  ★ suggested" : ""}
+                  {c}{suggested?.channel === c ? " — recommended" : ""}
                 </option>
               ))}
             </select>
-            {suggested && (
-              <span className="hint" style={{ display: "block", marginTop: 5 }}>
-                ★ {suggested.channel} has your best click rate so far ({(suggested.rate * 100).toFixed(1)}%)
-              </span>
-            )}
           </label>
         </div>
+
+        {suggested && (
+          <p className="hint" style={{ marginTop: -2 }}>
+            Recommended channel: <strong>{suggested.channel}</strong> — your best click rate so far ({(suggested.rate * 100).toFixed(1)}%).
+          </p>
+        )}
 
         {segments !== null && segments.length === 0 && (
           <p className="hint">

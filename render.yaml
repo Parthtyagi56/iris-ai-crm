@@ -1,31 +1,37 @@
 # Render Blueprint: deploys both services in one click (New → Blueprint).
 #
-# After the first deploy, the only manual steps are filling the env vars
-# marked `sync: false`:
-#   aurelia-crm:
-#     DATABASE_URL        -> Neon Postgres URL (or leave unset for ephemeral SQLite)
-#     ANTHROPIC_API_KEY   -> enables the AI features (optional)
-#     CHANNEL_SERVICE_URL -> https://aurelia-channel.onrender.com
-#     CRM_PUBLIC_URL      -> https://aurelia-crm.onrender.com
+# After the first deploy, fill the env vars marked `sync: false` on iris-crm:
+#   DATABASE_URL        -> Neon Postgres URL (recommended; unset = ephemeral SQLite)
+#   CHANNEL_SERVICE_URL -> https://iris-channel.onrender.com
+#   CRM_PUBLIC_URL      -> https://iris-crm.onrender.com   (channel calls back here)
+#   AI (pick one):
+#     ANTHROPIC_API_KEY                                  (Anthropic), or
+#     AI_API_KEY + AI_BASE_URL + AI_MODEL                (free: Groq/Gemini/OpenRouter)
+#       e.g. Groq: AI_BASE_URL=https://api.groq.com/openai/v1
+#                  AI_MODEL=llama-3.3-70b-versatile
 # WEBHOOK_SECRET is generated once and shared by both services via the env group.
-# The CRM's start command seeds on first boot (seed.py is a no-op if data exists).
+# The CRM seeds on first boot (seed.py is a no-op if data already exists).
+#
+# Frontend deploys separately on Vercel: Root Directory = frontend/, and set
+# VITE_API_URL = the iris-crm URL. vercel.json handles SPA routing.
 
 envVarGroups:
-  - name: aurelia-shared
+  - name: iris-shared
     envVars:
       - key: WEBHOOK_SECRET
         generateValue: true
 
 services:
   - type: web
-    name: aurelia-crm
+    name: iris-crm
     runtime: python
     rootDir: backend
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
-      - fromGroup: aurelia-shared
+      - fromGroup: iris-shared
       - key: PYTHON_VERSION
         value: 3.12.10
       - key: DATABASE_URL
@@ -36,15 +42,22 @@ services:
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      - key: AI_API_KEY
+        sync: false
+      - key: AI_BASE_URL
+        sync: false
+      - key: AI_MODEL
+        sync: false
 
   - type: web
-    name: aurelia-channel
+    name: iris-channel
     runtime: python
     rootDir: channel-service
     plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
-      - fromGroup: aurelia-shared
+      - fromGroup: iris-shared
       - key: PYTHON_VERSION
         value: 3.12.10

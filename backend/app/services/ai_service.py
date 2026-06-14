@@ -13,6 +13,7 @@ trusts it. The model proposes; deterministic code disposes. If the model
 emits an invalid artifact, validation fails loudly instead of corrupting a
 campaign.
 """
+import contextvars
 import json
 import logging
 from datetime import datetime
@@ -25,6 +26,19 @@ from ..config import settings
 from ..schemas import RuleGroup
 
 logger = logging.getLogger(__name__)
+
+# Per-request model override (set from the X-AI-Model header). Lets the
+# marketer pick any model the configured provider offers without a restart.
+_model_override: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "ai_model_override", default="")
+
+
+def set_model_override(model: str) -> None:
+    _model_override.set(model or "")
+
+
+def _model() -> str:
+    return _model_override.get() or settings.ai_model
 
 CHANNELS = ["whatsapp", "sms", "email", "rcs"]
 CHANNEL_CONSTRAINTS = {
@@ -74,12 +88,14 @@ def _require_ai() -> str:
 
 # ---------------------------------------------------------------- providers
 
-def _anthropic_structured(system: str, user: str, tool: dict) -> dict:
+def _anthropic_structured(system: str, user: str, tool: dict,
+                          temperature: float = 0.4) -> dict:
     import anthropic
     client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
     resp = client.messages.create(
-        model=settings.ai_model,
+        model=_model(),
         max_tokens=1500,
+        temperature=temperature,
         system=system,
         messages=[{"role": "user", "content": user}],
         tools=[tool],
@@ -107,7 +123,8 @@ def _extract_json(text: str) -> dict:
         raise HTTPException(502, f"AI returned malformed JSON: {exc}")
 
 
-def _openai_structured(system: str, user: str, tool: dict) -> dict:
+def _openai_structured(system: str, user: str, tool: dict,
+                       temperature: float = 0.4) -> dict:
     """JSON mode against any OpenAI-compatible /chat/completions."""
     schema_prompt = (
         f"{system}\n\nRespond with ONLY a JSON object matching this schema "
@@ -115,10 +132,10 @@ def _openai_structured(system: str, user: str, tool: dict) -> dict:
         f"{json.dumps(tool['input_schema'], indent=1)}"
     )
     body = {
-        "model": settings.ai_model,
+        "model": _model(),
         "messages": [{"role": "system", "content": schema_prompt},
                      {"role": "user", "content": user}],
-        "temperature": 0.4,
+        "temperature": temperature,
         "response_format": {"type": "json_object"},
     }
     headers = {"Authorization": f"Bearer {settings.ai_api_key}"}
@@ -140,11 +157,12 @@ def _openai_structured(system: str, user: str, tool: dict) -> dict:
     return _extract_json(content)
 
 
-def _structured(system: str, user: str, tool: dict) -> dict:
+def _structured(system: str, user: str, tool: dict,
+                temperature: float = 0.4) -> dict:
     provider = _require_ai()
     if provider == "anthropic":
-        return _anthropic_structured(system, user, tool)
-    return _openai_structured(system, user, tool)
+        return _anthropic_structured(system, user, tool, temperature)
+    return _openai_structured(system, user, tool, temperature)
 
 
 # ------------------------------------------------------------- touchpoints
@@ -220,7 +238,8 @@ def draft_messages(objective: str, audience_description: str, channel: str) -> d
         "consumer brand. Personalisation tokens available (use at least "
         "{{first_name}}): {{first_name}}, {{name}}, {{city}}. "
         f"Channel: {channel}. Constraint: {CHANNEL_CONSTRAINTS[channel]} "
-        "Each variant must take a genuinely different angle."
+        "Each variant must take a genuinely different angle. Any prices or "
+        "discounts use ₹ (INR), never $."
     )
     user = (f"Objective: {objective}\n"
             f"Audience: {audience_description or 'see objective'}")
@@ -232,18 +251,20 @@ def draft_messages(objective: str, audience_description: str, channel: str) -> d
 
 def summarize_campaign(stats: dict) -> str:
     system = (
-        "You are a marketing analyst. Given campaign delivery and engagement "
-        "stats as JSON, write a crisp 2-3 sentence performance summary for a "
-        "brand marketer: lead with the headline number, flag anything "
+        "You are a marketing analyst for an Indian D2C brand. Given campaign "
+        "delivery and engagement stats as JSON, write a crisp 2-3 sentence "
+        "performance summary: lead with the headline number, flag anything "
         "unusual (e.g. high failure rate), and end with one concrete "
-        "suggestion. No preamble, no bullet points."
+        "suggestion. No preamble, no bullet points. All money is Indian "
+        "Rupees — always write amounts with the ₹ symbol (e.g. ₹37,411); "
+        "never use $ or USD."
     )
     provider = _require_ai()
     if provider == "anthropic":
         import anthropic
         client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
         resp = client.messages.create(
-            model=settings.ai_model, max_tokens=300, system=system,
+            model=_model(), max_tokens=300, temperature=0, system=system,
             messages=[{"role": "user", "content": str(stats)}])
         return "".join(b.text for b in resp.content if b.type == "text").strip()
     # OpenAI-compatible: reuse the structured helper with a trivial schema.
@@ -252,7 +273,7 @@ def summarize_campaign(stats: dict) -> str:
         json.dumps(stats),
         {"input_schema": {"type": "object",
                           "properties": {"summary": {"type": "string"}},
-                          "required": ["summary"]}})
+                          "required": ["summary"]}}, temperature=0)
     return str(out.get("summary", "")).strip()
 
 
@@ -297,6 +318,101 @@ COPILOT_TOOL = {
 }
 
 
+ASK_TOOL = {
+    "name": "answer_question",
+    "description": "Answer a marketer's analytics question from the data.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "answer": {
+                "type": "string",
+                "description": "2-4 sentence, data-grounded answer. Cite the actual numbers. If the data can't answer, say so plainly.",
+            },
+            "followups": {
+                "type": "array",
+                "items": {"type": "string"},
+                "maxItems": 3,
+                "description": "Up to 3 short follow-up questions the marketer might ask next.",
+            },
+        },
+        "required": ["answer"],
+    },
+}
+
+
+RECOMMEND_TOOL = {
+    "name": "campaign_recommendations",
+    "description": "Analyse a live campaign and recommend concrete changes.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "headline": {
+                "type": "string",
+                "description": "One-sentence read of how the campaign is doing, citing the key number.",
+            },
+            "recommendations": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 4,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string",
+                                  "description": "3-6 word action, e.g. 'Clean the email list'"},
+                        "detail": {"type": "string",
+                                   "description": "One sentence: why, citing the stat, and what to do next."},
+                        "priority": {"type": "string", "enum": ["high", "medium", "low"]},
+                    },
+                    "required": ["title", "detail", "priority"],
+                },
+            },
+        },
+        "required": ["headline", "recommendations"],
+    },
+}
+
+
+def recommend_for_campaign(stats: dict) -> dict:
+    """Active analysis: turn a live funnel into prioritised, concrete actions
+    the marketer can take on this campaign or the next."""
+    system = (
+        "You are a campaign optimisation advisor for an Indian D2C brand. "
+        "Given a campaign's live delivery/engagement funnel as JSON, return a "
+        "one-line headline plus 2-4 prioritised, concrete recommendations to "
+        "improve results — fix problems (high failure/low open/low click) and "
+        "press advantages (strong converters, best channel). Reference the "
+        "actual numbers. Money is INR with the ₹ symbol, never $. Be specific "
+        "and operational, not generic."
+    )
+    # temperature 0 → the same funnel yields the same recommendations.
+    out = _structured(system, str(stats), RECOMMEND_TOOL, temperature=0)
+    return {
+        "headline": str(out.get("headline", "")).strip(),
+        "recommendations": [
+            {"title": str(r.get("title", "")), "detail": str(r.get("detail", "")),
+             "priority": r.get("priority", "medium")}
+            for r in (out.get("recommendations") or [])
+        ][:4],
+    }
+
+
+def answer_question(question: str, context: dict) -> dict:
+    """Natural-language analytics over the brand's own aggregates — the
+    'ask your data' panel. Grounded strictly in the supplied context."""
+    system = (
+        "You are a marketing analytics copilot for an Indian D2C fashion "
+        "brand. Answer ONLY from the JSON data context below; never invent "
+        "numbers. Be concrete and cite the figures. Keep it to 2-4 sentences, "
+        "decision-oriented (what it means / what to do). All money is Indian "
+        "Rupees — always write amounts with the ₹ symbol (e.g. ₹2,40,000); "
+        "never use $ or USD. "
+        f"Data context: {json.dumps(context)}"
+    )
+    out = _structured(system, question, ASK_TOOL)
+    return {"answer": str(out.get("answer", "")).strip(),
+            "followups": [str(f) for f in (out.get("followups") or [])][:3]}
+
+
 def copilot_turn(messages: list[dict], context: dict) -> dict:
     """One conversational turn. Returns {reply, plan?} with plan validated.
 
@@ -305,7 +421,7 @@ def copilot_turn(messages: list[dict], context: dict) -> dict:
     actual creating and sending.
     """
     system = (
-        "You are the campaign copilot inside Aurelia, a marketing CRM for an "
+        "You are Lyra, the campaign copilot inside Iris, a marketing CRM for an "
         "Indian D2C fashion brand. You help the marketer go from a goal to a "
         "ready-to-approve campaign: audience rules, channel choice, and "
         "message copy. You NEVER send anything — the marketer reviews and "

@@ -138,15 +138,22 @@ resulting funnel.
 A [render.yaml](render.yaml) blueprint deploys both services in one click:
 
 1. **Neon** — create a free Postgres DB, copy the connection string.
-2. **Render** — *New → Blueprint*, point at this repo. Fill in:
-   `DATABASE_URL` (Neon), `ANTHROPIC_API_KEY` (optional),
-   `CHANNEL_SERVICE_URL` = `https://aurelia-channel.onrender.com`,
-   `CRM_PUBLIC_URL` = `https://aurelia-crm.onrender.com`.
+2. **Render** — *New → Blueprint*, point at this repo. Fill in on `iris-crm`:
+   `DATABASE_URL` (Neon),
+   `CHANNEL_SERVICE_URL` = `https://iris-channel.onrender.com`,
+   `CRM_PUBLIC_URL` = `https://iris-crm.onrender.com` (the channel calls back
+   here), and AI — either `ANTHROPIC_API_KEY`, or the free trio
+   `AI_API_KEY` + `AI_BASE_URL` + `AI_MODEL` (e.g. Groq:
+   `https://api.groq.com/openai/v1`, `llama-3.3-70b-versatile`).
    `WEBHOOK_SECRET` is auto-generated and shared via an env group; the CRM
    seeds itself on first boot.
 3. **Vercel** — import the repo, set *Root Directory* to `frontend/`, add
-   env var `VITE_API_URL` = the CRM URL. `frontend/vercel.json` already
-   handles SPA rewrites.
+   env var `VITE_API_URL` = the `iris-crm` URL. `frontend/vercel.json` already
+   handles SPA rewrites. The Data sources page, API snippets and MCP config
+   all read this URL, so they show the live host automatically.
+
+The MCP server points at the live CRM by setting `CRM_BASE_URL` in
+`claude_desktop_config.json` — no code change needed.
 
 Architecture decisions and their trade-offs are documented in
 [DECISIONS.md](DECISIONS.md).

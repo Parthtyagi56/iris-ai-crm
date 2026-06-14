@@ -1,7 +1,8 @@
 import { useRef, useState } from "react";
 import {
   Code2, FileSpreadsheet, Plug, CheckCircle2, ShoppingCart, Store,
-  Database, Sheet, Megaphone, CreditCard, Boxes, Webhook,
+  Database, Sheet, Megaphone, CreditCard, MessageSquareText, Camera,
+  Sparkles,
 } from "lucide-react";
 import { api, API_URL } from "../api.js";
 import { usePageTitle } from "../App.jsx";
@@ -54,6 +55,9 @@ const SCHEMAS = {
   },
 };
 
+// The sources a retail/D2C brand on Xeno actually runs on — e-commerce
+// platforms, retail POS, and the WhatsApp/Instagram/Meta/Google channels
+// Xeno engages shoppers through. Each works today via REST or CSV.
 const CONNECTORS = [
   {
     name: "Shopify", Icon: ShoppingCart, via: "orders webhook → REST", csvKind: "orders",
@@ -68,16 +72,28 @@ const CONNECTORS = [
             "Import below, or script the WooCommerce REST API into the bulk endpoint."],
   },
   {
-    name: "BigCommerce", Icon: Boxes, via: "REST or CSV export", csvKind: "orders",
-    steps: ["Orders → Export → CSV from the BigCommerce control panel.",
-            "Map columns to customer_email, amount, category, created_at.",
-            "Import the file below."],
+    name: "Retail POS", Icon: CreditCard, via: "billing export → REST", csvKind: "orders",
+    steps: ["Export bills/transactions from your POS (GoFrugal, Posist, Shopify POS…).",
+            "Keep the buyer email/phone and the bill total as customer_email and amount.",
+            "Import the file below — or schedule a nightly push to the API."],
   },
   {
-    name: "Square POS", Icon: CreditCard, via: "transactions export", csvKind: "orders",
-    steps: ["Square Dashboard → Transactions → Export.",
-            "Keep the buyer email column as customer_email and the total as amount.",
-            "Import the file below."],
+    name: "WhatsApp Business", Icon: MessageSquareText, via: "opt-ins → REST", csvKind: "customers",
+    steps: ["Export opted-in contacts from your WhatsApp Business / BSP panel.",
+            "Map name and phone (email if available) to the customer fields.",
+            "Import below to build a reachable WhatsApp audience."],
+  },
+  {
+    name: "Instagram", Icon: Camera, via: "leads / followers CSV", csvKind: "customers",
+    steps: ["Export leads from Instagram lead forms or your social tool.",
+            "Map full_name → name and email → email.",
+            "Import the file below as customers."],
+  },
+  {
+    name: "Meta Ads", Icon: Megaphone, via: "lead ads CSV / API", csvKind: "customers",
+    steps: ["Meta Ads Manager → Lead forms → Download leads (CSV).",
+            "Map full_name → name and email → email.",
+            "Import the file below to add the leads as customers."],
   },
   {
     name: "Google Sheets", Icon: Sheet, via: "CSV download", csvKind: "customers",
@@ -86,19 +102,7 @@ const CONNECTORS = [
             "Import the file below."],
   },
   {
-    name: "Meta Lead Ads", Icon: Megaphone, via: "leads CSV / API", csvKind: "customers",
-    steps: ["Meta Ads Manager → Lead forms → Download leads (CSV).",
-            "Map full_name → name and email → email.",
-            "Import the file below to add the leads as customers."],
-  },
-  {
-    name: "Segment CDP", Icon: Webhook, via: "HTTP destination", csvKind: "customers",
-    steps: ["Add an HTTP API destination in Segment.",
-            "Point identify calls at the customers endpoint, order events at the orders endpoint (snippet below).",
-            "Data lands in real time — no CSV needed."],
-  },
-  {
-    name: "Warehouse", Icon: Database, via: "reverse-ETL → REST", csvKind: "customers",
+    name: "Data warehouse", Icon: Database, via: "reverse-ETL → REST", csvKind: "customers",
     steps: ["Write a SELECT for the customers (or orders) you want synced.",
             "Schedule a reverse-ETL job (Hightouch/Census or a cron script) that POSTs rows to the bulk endpoint in 500-row chunks.",
             "Re-running is safe — customers dedupe on email."],
@@ -186,7 +190,7 @@ export default function DataSources() {
         <div>
           <h1>Data sources</h1>
           <p>
-            Aurelia is API-first: anything that can POST JSON or export a CSV can feed it today.
+            Iris is API-first: anything that can POST JSON or export a CSV can feed it today.
             Native one-click connectors are the documented next step, not a prerequisite.
           </p>
         </div>
@@ -213,8 +217,8 @@ POST ${API_URL}/api/orders/bulk
           </p>
         </div>
 
-        <div className="panel method-card rise" ref={csvCardRef} style={{ marginTop: 0, "--i": 2 }}>
-          <h3><FileSpreadsheet size={16} /> CSV import <span className="status-chip">Live</span></h3>
+        <div className="panel method-card feature rise" ref={csvCardRef} style={{ marginTop: 0, "--i": 2 }}>
+          <h3><FileSpreadsheet size={16} /> CSV import <span className="status-chip">Live · try it</span></h3>
           <p>
             The universal adapter — every commerce tool exports CSV. Header row required:
             <code className="rules" style={{ marginLeft: 4 }}>{expectedHeader}</code>
@@ -284,6 +288,28 @@ POST ${API_URL}/api/orders/bulk
               <span className="via">{c.via}</span>
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="panel rise" style={{ "--i": 4 }}>
+        <h2><Sparkles size={15} /> Agent access · MCP</h2>
+        <p className="panel-sub">
+          Iris ships an <strong>MCP server</strong> so an AI agent (Claude Desktop, or any
+          MCP client) can operate the CRM by conversation — explore the base, build an
+          audience, draft copy, launch a campaign, read the funnel. Same HTTP API, same
+          human-approval boundary (draft vs. launch).
+        </p>
+        <div className="code-block">
+{`// claude_desktop_config.json
+{
+  "mcpServers": {
+    "iris-crm": {
+      "command": "python",
+      "args": ["mcp-server/server.py"],
+      "env": { "CRM_BASE_URL": "${API_URL}" }
+    }
+  }
+}`}
         </div>
       </div>
 

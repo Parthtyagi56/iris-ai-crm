@@ -3,7 +3,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Campaign, Customer, Message, Order, Segment
+from ..models import (Campaign, Customer, Message, MessageEvent, Order,
+                      Segment)
 from ..schemas import CampaignCreate, RuleGroup
 from ..services.dispatcher import dispatch_campaign
 from ..services.receipt_processor import STATUS_RANK
@@ -55,6 +56,27 @@ def list_campaigns(db: Session = Depends(get_db)):
     return {"campaigns": [_stats(db, c) for c in campaigns]}
 
 
+@router.delete("/{campaign_id}", status_code=204)
+def delete_campaign(campaign_id: str, db: Session = Depends(get_db)):
+    """Remove a campaign and its messages/events. Attributed orders are kept
+    (real revenue) but detached from the deleted campaign."""
+    campaign = db.get(Campaign, campaign_id)
+    if campaign is None:
+        raise HTTPException(404, "campaign not found")
+    msg_ids = [m for (m,) in db.execute(
+        select(Message.id).where(Message.campaign_id == campaign_id))]
+    if msg_ids:
+        db.query(MessageEvent).filter(
+            MessageEvent.message_id.in_(msg_ids)).delete(synchronize_session=False)
+        db.query(Message).filter(
+            Message.campaign_id == campaign_id).delete(synchronize_session=False)
+    # keep the orders, drop the now-dangling campaign reference
+    db.query(Order).filter(Order.campaign_id == campaign_id).update(
+        {Order.campaign_id: None}, synchronize_session=False)
+    db.delete(campaign)
+    db.commit()
+
+
 @router.get("/{campaign_id}")
 def get_campaign(campaign_id: str, db: Session = Depends(get_db)):
     campaign = db.get(Campaign, campaign_id)
@@ -103,17 +125,41 @@ def _stats(db: Session, c: Campaign, include_messages: bool = False) -> dict:
         },
     }
     if include_messages:
+        # The full recipient list (sorting/paging happens client-side); a
+        # campaign's message count equals its audience, hundreds not millions.
         rows = db.execute(
-            select(Message, Customer.name)
+            select(Message, Customer.name, Customer.city)
             .join(Customer, Customer.id == Message.customer_id)
             .where(Message.campaign_id == c.id)
-            .order_by(Message.updated_at.desc()).limit(50)
+            .order_by(Message.updated_at.desc()).limit(2000)
         ).all()
+        # Per-recipient spend / order count — joined through this campaign's
+        # messages so we never build a huge IN clause (SQLite var limit).
+        agg = {cid: {"orders": cnt, "spend": round(spend, 2)}
+               for cid, spend, cnt in db.execute(
+                   select(Order.customer_id,
+                          func.coalesce(func.sum(Order.amount), 0.0),
+                          func.count(Order.id))
+                   .join(Message, Message.customer_id == Order.customer_id)
+                   .where(Message.campaign_id == c.id)
+                   .group_by(Order.customer_id))}
+        top_cat: dict = {}
+        for cid, cat, n in db.execute(
+                select(Order.customer_id, Order.category, func.count())
+                .join(Message, Message.customer_id == Order.customer_id)
+                .where(Message.campaign_id == c.id, Order.category != "")
+                .group_by(Order.customer_id, Order.category)):
+            cur = top_cat.get(cid)
+            if cur is None or n > cur[1]:
+                top_cat[cid] = (cat, n)
         out["recent_messages"] = [
             {"id": m.id, "customer_id": m.customer_id,
-             "customer_name": name, "status": m.status,
+             "customer_name": name, "city": city, "status": m.status,
+             "order_count": agg.get(m.customer_id, {}).get("orders", 0),
+             "total_spend": agg.get(m.customer_id, {}).get("spend", 0.0),
+             "top_category": (top_cat.get(m.customer_id) or (None,))[0],
              "content": m.content, "failure_reason": m.failure_reason,
              "updated_at": m.updated_at}
-            for m, name in rows
+            for m, name, city in rows
         ]
     return out

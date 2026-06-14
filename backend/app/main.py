@@ -78,6 +78,33 @@ def dashboard():
             for week, total in sorted(buckets.items())
         ]
 
+        # Last ~12 months of revenue, bucketed by calendar month.
+        month_cutoff = utcnow() - timedelta(days=370)
+        m_recent = db.execute(
+            select(Order.created_at, Order.amount)
+            .where(Order.created_at >= month_cutoff)).all()
+        m_buckets: dict = {}
+        for created_at, amount in m_recent:
+            key = (created_at.year, created_at.month)
+            m_buckets[key] = m_buckets.get(key, 0.0) + amount
+        monthly_revenue = [
+            {"month": f"{y:04d}-{m:02d}", "revenue": round(total, 2)}
+            for (y, m), total in sorted(m_buckets.items())
+        ]
+
+        # Last 30 days of revenue, bucketed by day.
+        day_cutoff = utcnow() - timedelta(days=30)
+        d_recent = db.execute(
+            select(Order.created_at, Order.amount)
+            .where(Order.created_at >= day_cutoff)).all()
+        d_buckets: dict = {}
+        for created_at, amount in d_recent:
+            d_buckets[created_at.date()] = d_buckets.get(created_at.date(), 0.0) + amount
+        daily_revenue = [
+            {"day": str(day), "revenue": round(total, 2)}
+            for day, total in sorted(d_buckets.items())
+        ]
+
         # Customer health by recency of last order. Same thresholds the
         # frontend uses for per-row tiers; one outer-join GROUP BY at this
         # volume, a materialised rollup at scale.
@@ -145,6 +172,8 @@ def dashboard():
             "revenue": round(revenue, 2),
             "campaigns": campaigns_count,
             "weekly_revenue": weekly_revenue,
+            "monthly_revenue": monthly_revenue,
+            "daily_revenue": daily_revenue,
             "customer_health": health,
             "categories": categories,
         }

@@ -8,7 +8,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Customer, Order
+from ..models import Customer, Message, MessageEvent, Order
 from ..schemas import CustomerIn, OrderIn
 
 router = APIRouter(prefix="/api", tags=["ingest"])
@@ -39,7 +39,11 @@ def bulk_customers(body: list[CustomerIn], db: Session = Depends(get_db)):
 
 @router.get("/customers")
 def list_customers(q: str = "", limit: int = 25, offset: int = 0,
-                   sort: str = "recent", db: Session = Depends(get_db)):
+                   sort: str = "recent", order: str = "desc",
+                   db: Session = Depends(get_db)):
+    """Browse customers with search, sort and order. `sort` accepts
+    recent | name | spend | orders | last_order (top_spend kept as an alias
+    for the high-value spotlight); `order` is asc | desc."""
     stmt = select(Customer)
     if q:
         like = f"%{q.lower()}%"
@@ -47,22 +51,55 @@ def list_customers(q: str = "", limit: int = 25, offset: int = 0,
                           | func.lower(Customer.email).like(like))
     total = db.scalar(select(func.count()).select_from(stmt.subquery()))
 
-    if sort == "top_spend":
-        # Highest lifetime spend first — powers the high-value spotlight.
-        spend_sq = (
-            select(Order.customer_id,
-                   func.sum(Order.amount).label("spend"))
-            .group_by(Order.customer_id).subquery())
-        stmt = (stmt.join(spend_sq, spend_sq.c.customer_id == Customer.id)
-                .order_by(spend_sq.c.spend.desc()))
-    else:
-        stmt = stmt.order_by(Customer.created_at.desc())
+    desc = order != "asc"
+    # Per-customer aggregates needed for spend/orders/recency sorts.
+    agg = (select(Order.customer_id,
+                  func.sum(Order.amount).label("spend"),
+                  func.count(Order.id).label("orders"),
+                  func.max(Order.created_at).label("last_order"))
+           .group_by(Order.customer_id).subquery())
+
+    if sort in ("spend", "top_spend", "orders", "last_order"):
+        col = {"spend": agg.c.spend, "top_spend": agg.c.spend,
+               "orders": agg.c.orders, "last_order": agg.c.last_order}[sort]
+        stmt = stmt.outerjoin(agg, agg.c.customer_id == Customer.id)
+        # NULLs (no orders) sort last regardless of direction.
+        stmt = stmt.order_by(col.desc().nulls_last() if desc
+                             else col.asc().nulls_last())
+    elif sort == "name":
+        stmt = stmt.order_by(func.lower(Customer.name).desc() if desc
+                             else func.lower(Customer.name).asc())
+    else:  # recent (by join date)
+        stmt = stmt.order_by(Customer.created_at.desc() if desc
+                             else Customer.created_at.asc())
 
     rows = db.execute(stmt.limit(limit).offset(offset)).scalars().all()
     return {
         "total": total,
         "customers": [_customer_summary(db, c) for c in rows],
     }
+
+
+@router.delete("/customers/{customer_id}", status_code=204)
+def delete_customer(customer_id: str, db: Session = Depends(get_db)):
+    """Remove a customer and the rows that belong to them (orders, sent
+    messages and their events). Irreversible — the UI confirms first."""
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise HTTPException(404, "customer not found")
+    msg_ids = [m for (m,) in db.execute(
+        select(Message.id).where(Message.customer_id == customer_id))]
+    if msg_ids:
+        db.query(MessageEvent).filter(
+            MessageEvent.message_id.in_(msg_ids)).delete(
+                synchronize_session=False)
+        db.query(Message).filter(
+            Message.customer_id == customer_id).delete(
+                synchronize_session=False)
+    db.query(Order).filter(Order.customer_id == customer_id).delete(
+        synchronize_session=False)
+    db.delete(customer)
+    db.commit()
 
 
 def _customer_summary(db: Session, c: Customer) -> dict:
