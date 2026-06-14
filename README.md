@@ -1,4 +1,4 @@
-# Aurelia Mini CRM — AI-native shopper engagement
+# Iris — AI-native shopper engagement
 
 A take on the Xeno assignment: an AI-native mini CRM for a D2C brand, built
 around one product point of view — **you describe the campaign, the AI builds
