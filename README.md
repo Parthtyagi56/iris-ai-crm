@@ -11,7 +11,7 @@ without explicit human approval.
 
 | | |
 |---|---|
-| **App** | https://xeno-mini-crm-one-ruddy.vercel.app |
+| **App** | https://iris-ai-crm.vercel.app |
 | **Login** | `admin@iris.shop` · `iris123` |
 | **CRM API** | https://iris-crm.onrender.com ([`/docs`](https://iris-crm.onrender.com/docs)) |
 | **Channel** | https://iris-channel.onrender.com |
