@@ -15,7 +15,7 @@ from .services.auth import ensure_default_user
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(
-    title="Xeno Mini CRM",
+    title="Iris — AI-native CRM",
     description="AI-native mini CRM for reaching shoppers.",
 )
 

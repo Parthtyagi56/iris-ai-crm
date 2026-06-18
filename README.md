@@ -1,8 +1,8 @@
 # Iris — AI-native shopper engagement
 
-A take on the Xeno assignment: an AI-native mini CRM for a D2C brand, built
-around one product point of view — **you describe the campaign, the AI builds
-it, you approve it.** The marketer expresses intent in natural language; the
+Iris is an AI-native mini CRM for D2C brands, built around one product point of
+view — **you describe the campaign, the AI builds it, you approve it.** The
+marketer expresses intent in natural language; the
 AI answers with *structured, editable artifacts* (segment rules with a live
 audience preview, message variants, channel suggestion). Nothing sends
 without explicit human approval.

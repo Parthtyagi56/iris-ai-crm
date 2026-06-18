@@ -46,8 +46,8 @@ Add to `claude_desktop_config.json`
 {
   "mcpServers": {
     "iris-crm": {
-      "command": "C:\\Users\\HP\\xeno\\mcp-server\\.venv\\Scripts\\python.exe",
-      "args": ["C:\\Users\\HP\\xeno\\mcp-server\\server.py"],
+      "command": "/path/to/iris-ai-crm/mcp-server/.venv/bin/python",
+      "args": ["/path/to/iris-ai-crm/mcp-server/server.py"],
       "env": { "CRM_BASE_URL": "http://localhost:8000" }
     }
   }

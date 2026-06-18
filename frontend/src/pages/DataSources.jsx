@@ -55,9 +55,9 @@ const SCHEMAS = {
   },
 };
 
-// The sources a retail/D2C brand on Xeno actually runs on — e-commerce
-// platforms, retail POS, and the WhatsApp/Instagram/Meta/Google channels
-// Xeno engages shoppers through. Each works today via REST or CSV.
+// The sources a retail/D2C brand actually runs on — e-commerce platforms,
+// retail POS, and the WhatsApp/Instagram/Meta/Google channels brands engage
+// shoppers through. Each works today via REST or CSV.
 const CONNECTORS = [
   {
     name: "Shopify", Icon: ShoppingCart, via: "orders webhook → REST", csvKind: "orders",
